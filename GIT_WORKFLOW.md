@@ -4,6 +4,35 @@
 
 ---
 
+## Git Remotes (Configured 2026-03-24)
+
+### 当前配置的远程仓库
+```bash
+# 查看远程
+$ git remote -v
+github      git@github.com:glr444/indigenex-website.git (fetch)
+github      git@github.com:glr444/indigenex-website.git (push)
+production  root@indigenex-server:/var/git/indigenex-website.git (fetch)
+production  root@indigenex-server:/var/git/indigenex-website.git (push)
+```
+
+### 远程用途
+| 远程 | 用途 | 推送命令 |
+|------|------|----------|
+| `github` | GitHub代码托管/备份 | `git push github main` |
+| `production` | 服务器自动部署 | `git push production main` |
+
+### 服务器自动部署流程
+推送代码到 `production` 远程时，自动执行：
+1. 检出代码到 `/var/www/indigenex-website/`
+2. 构建前端 `npm run build`
+3. 构建后台 `npm run build`
+4. 安装后端依赖 + Prisma生成
+5. 重启Nginx
+6. PM2重启后端服务
+
+---
+
 ## 分支结构说明
 
 ```
