@@ -4,14 +4,14 @@ server {
 
     # 前端静态文件 (Next.js 静态导出到 dist 目录)
     location / {
-        root /var/www/indigenex-website/frontend;
+        root /var/www/indigenex-website/frontend/dist;
         try_files $uri $uri.html $uri/ /index.html;
         index index.html;
     }
 
     # 静态资源 (_next 目录包含 CSS/JS 文件)
     location /_next/ {
-        root /var/www/indigenex-website/frontend;
+        root /var/www/indigenex-website/frontend/dist;
         try_files $uri =404;
         # 添加缓存头
         expires 1y;
@@ -20,7 +20,7 @@ server {
 
     # 图片资源
     location /images/ {
-        root /var/www/indigenex-website/frontend;
+        root /var/www/indigenex-website/frontend/dist;
         try_files $uri =404;
         expires 1y;
         add_header Cache-Control "public, immutable";
