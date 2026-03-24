@@ -1,0 +1,74 @@
+{
+  "version": "1.0",
+  "image_specs": {
+    "file_name": "qingming-bg.png",
+    "dimensions": {
+      "width": 800,
+      "height": 900,
+      "aspect_ratio": "8:9"
+    },
+    "format": "PNG",
+    "file_size": "建议 200KB - 1MB"
+  },
+  "art_style": {
+    "primary_style": "国画工笔画 (Chinese Gongbi Painting)",
+    "secondary_style": "水墨画 (Ink Wash Painting)",
+    "color_palette": {
+      "dominant": ["青灰色", "淡墨灰", "米白色"],
+      "accent": ["淡青色", "浅绿色", "水墨黑"],
+      "background": "留白/淡灰白渐变"
+    }
+  },
+  "composition": {
+    "layout": "竖构图，远景中景近景三层",
+    "focal_point": "湖边撑伞女子（约占画面 1/8 大小）",
+    "white_space": "大面积留白，营造空灵意境"
+  },
+  "elements": {
+    "main_subject": {
+      "description": "古代女子",
+      "pose": "侧身漫步，身姿纤细优雅",
+      "clothing": "淡雅汉服/旗袍，浅色系",
+      "prop": "青色油纸伞，半撑状态",
+      "size_ratio": "约占画面 15-20%，不可过大",
+      "position": "右侧偏中，湖边小径"
+    },
+    "environment": {
+      "sky": "烟雨蒙蒙，细雨纷飞",
+      "water": "平静湖面，微泛涟漪",
+      "vegetation": "垂柳依依，枝条轻拂水面",
+      "distant_view": "朦胧村落，隐约屋舍",
+      "atmosphere": "薄雾笼罩，如梦似幻"
+    }
+  },
+  "artistic_details": {
+    "brushwork": [
+      "细腻工笔线条",
+      "水墨晕染效果",
+      "可见笔触纹理",
+      "淡墨渐变层次"
+    ],
+    "mood": [
+      "清明时节雨纷纷",
+      "宁静致远",
+      "淡雅清新",
+      "诗意盎然"
+    ],
+    "references": [
+      "宋代山水画",
+      "工笔仕女图",
+      "水墨烟雨图"
+    ]
+  },
+  "ai_generation_prompts": {
+    "midjourney": "Chinese Gongbi painting style, Qingming Festival scene, a slender woman in traditional Hanfu holding a celadon oil-paper umbrella, walking by a misty lake, light rain falling, distant village with traditional Chinese architecture shrouded in morning mist, weeping willow branches hanging down to the water, soft muted celadon and ink gray colors, delicate visible brush strokes, ink wash effects, minimalist composition with abundant white space, elegant and serene atmosphere, traditional Chinese landscape painting aesthetic, vertical format 800x900 --ar 8:9 --v 6 --style raw",
+    "stable_diffusion": "masterpiece, best quality, Chinese Gongbi painting, Qingming Festival, spring rain scene, graceful woman holding oil-paper umbrella, walking by misty lakeside, traditional Hanfu, distant village in fog, willow trees, ink wash painting style, soft brush strokes, celadon gray color palette, minimalist, elegant, lots of white space, traditional Chinese art, 800x900",
+    "dalle3": "A traditional Chinese Gongbi painting depicting the Qingming Festival. A slender woman in elegant traditional Hanfu holding a light green oil-paper umbrella walks along a misty lakeside. Light rain falls gently. In the distance, a traditional Chinese village is shrouded in morning mist. Weeping willow branches hang down to the water's surface. The color palette is muted celadon and ink gray with abundant white space. Delicate brush strokes and ink wash effects are visible. The composition is minimalist and serene, capturing the poetic atmosphere of 'rain falls heavily during Qingming'. Vertical format 800x900 pixels.",
+    "chinese": "国画工笔画风格，清明节场景，一位身姿纤细的古装女子撑着淡青色油纸伞，在烟雨朦胧的湖边漫步，细雨纷飞，远处传统中式村落隐没在晨雾中，柳枝垂落轻拂水面，青灰色调，水墨晕染，笔触细腻可见，大面积留白，意境悠远宁静，竖构图800x900"
+  },
+  "usage": {
+    "path": "/frontend/public/images/qingming-bg.png",
+    "css_usage": "background-image: url('/images/qingming-bg.png'); background-size: cover; background-position: center;",
+    "fallback": "当前使用SVG占位，替换PNG后删除SVG代码"
+  }
+}

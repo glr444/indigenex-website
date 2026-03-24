@@ -1,0 +1,9 @@
+#!/bin/bash
+echo "请在服务器上执行以下命令："
+echo ""
+echo "mkdir -p /root/.ssh"
+echo "chmod 700 /root/.ssh"
+echo "echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqAR5C+9o/C1riVEIBBUXI9fwgsyYVVmUyQ4YinnOwh2KhE5k3sTld42+zyGVxHJXXPJ9FX2b1NY8x+AX1kF1vlqkrs0wBjgG1yHQYlY0/Jj5hiXQM3aUNGb55kkq6DVDipxXbrVnwta/NKtsSp7iS/7FlS5O8W+M1FpP/9k/5Hr43yzYh4/is34ldrsh3aE1D4uj4engmhoM3JEdGH3/6JV4sxQ/eI+Q6bvK5km3aY7KbtzA6ghST7uoY8kBxP2wCC7fHiTg+vORiFxdSnijgZydzaTbuAGLuna9S17RMmGGsi3iXzgU+QGX1DqOVTREFfLBz2AXQKsd9gUd/Levn skp-t4n81gpwtwti66kkowj2' >> /root/.ssh/authorized_keys"
+echo "chmod 600 /root/.ssh/authorized_keys"
+echo ""
+echo "添加完成后，本地可以免密登录。"

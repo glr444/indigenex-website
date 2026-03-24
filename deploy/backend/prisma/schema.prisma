@@ -1,0 +1,224 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  password     String
+  role         String    @default("ADMIN")
+  isFirstLogin Boolean   @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model News {
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  content     String
+  summary     String?
+  imageUrl    String?
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  authorId    String?
+}
+
+model Contact {
+  id          String   @id @default(uuid())
+  fullName    String
+  company     String?
+  phone       String?
+  email       String
+  inquiryType String
+  details     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== 业务门户模型 ====================
+
+// 会员模型
+model Member {
+  id                     String    @id @default(uuid())
+  openid                 String?   @unique
+  companyName            String
+  contactName            String
+  phone                  String
+  email                  String?   @unique
+  password               String?
+  status                 String    @default("PENDING")
+  role                   String    @default("MEMBER")
+  position               String?
+  dazhangguiEnterpriseId String?   @map("dzg_enterprise_id")
+  lastLoginAt            DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // 销售联系信息
+  salesName    String? // 销售姓名
+  salesPhone   String? // 销售电话
+  salesMobile  String? // 销售手机
+  salesEmail   String? // 销售邮箱
+
+  apiKeys        ApiKey[]
+  subscriptions  Subscription[]
+  orderQueryLogs OrderQueryLog[]
+  memberPortPrefs MemberPortPreference[]
+
+  @@index([openid])
+  @@index([status])
+  @@index([email])
+}
+
+// API Key模型（对外API认证）
+model ApiKey {
+  id          String    @id @default(uuid())
+  memberId    String
+  key         String    @unique
+  name        String
+  permissions String?   // JSON字符串存储权限配置
+  isActive    Boolean   @default(true)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([key])
+  @@index([memberId])
+}
+
+// 订阅配额模型
+model Subscription {
+  id           String   @id @default(uuid())
+  memberId     String
+  planType     String   @default("FREE")
+  monthlyQuota Int      @default(100)
+  usedQuota    Int      @default(0)
+  periodStart  DateTime
+  periodEnd    DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime  @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+}
+
+// 运价模型
+model FreightRate {
+  id               String   @id @default(uuid())
+  route            String? // 航线
+  originPort       String // 起运港 POL (中文)
+  originPortEn     String? // 起运港英文
+  destinationPort  String // 目的港 POD (中文)
+  destinationPortEn String? // 目的港英文
+  viaPort          String? // 中转港 (中文)
+  viaPortEn        String? // 中转港英文
+  transportMode    String   @default("SEA")
+
+  // 价格字段
+  price20GP Float?
+  price40GP Float?
+  price40HQ Float?
+  price45HQ Float?
+  priceLCL  Float? // 拼箱价格
+  currency  String @default("USD")
+
+  // 附加费 JSON字符串格式
+  surcharges String?
+
+  carrier     String? // 船公司
+  carrierLogo String? // 船公司Logo URL
+  transitTime Int?    // 运输时间（天）
+  schedule    String? // 船期
+
+  // 舱位状态
+  spaceStatus String? @default("AVAILABLE") // AVAILABLE-充足, LIMITED-紧张, FULL-爆舱
+
+  validFrom DateTime // 生效日期
+  validTo   DateTime // 到期日期
+
+  // 截关和开船时间
+  cutOffDate          DateTime? // 截关日期
+  estimatedDeparture  DateTime? // ETD 预计开船时间
+
+  remarks String? // 备注
+  status  String  @default("ACTIVE")
+
+  importBatchId String? // 批量导入批次ID
+  createdBy     String  // 创建人（后台用户ID）
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([originPort, destinationPort])
+  @@index([originPortEn, destinationPortEn])
+  @@index([validFrom, validTo])
+  @@index([status])
+  @@index([carrier])
+}
+
+// 订单查询日志
+model OrderQueryLog {
+  id             String   @id @default(uuid())
+  memberId       String
+  dzgRequest     String   // JSON字符串存储大掌柜请求参数
+  dzgResponse    String?  // JSON字符串存储大掌柜响应（脱敏）
+  status         String   @default("SUCCESS")
+  errorMessage   String?
+  responseTimeMs Int?     // 响应时间（毫秒）
+  createdAt      DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([createdAt])
+}
+
+// 港口基础表
+model Port {
+  id          String   @id @default(uuid())
+  code        String   @unique // 港口代码
+  nameEn      String   // 英文名称
+  nameCn      String   // 中文名称
+  countryCode String?  // 国家代码
+  countryName String?  // 国家名称
+  region      String?  // 区域（如：东南亚、欧洲等）
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([code])
+  @@index([nameEn])
+  @@index([nameCn])
+  @@index([region])
+}
+
+// 会员港口偏好（用于记录查询习惯）
+model MemberPortPreference {
+  id          String   @id @default(uuid())
+  memberId    String
+  portCode    String   // 港口代码
+  portType    String   // ORIGIN 或 DESTINATION
+  queryCount  Int      @default(1) // 查询次数
+  lastQueryAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, portCode, portType])
+  @@index([memberId])
+  @@index([portCode])
+}

@@ -1,0 +1,313 @@
+{
+  "name": "Indigenex Freight Rate Manager",
+  "version": "1.0.0",
+  "description": "Indigenex 运价管理系统 API 集成",
+  "base_url": "https://your-domain.com/api",
+  "authentication": {
+    "type": "api_key",
+    "header_name": "X-API-Key",
+    "description": "API Key 需要在管理后台生成"
+  },
+  "endpoints": [
+    {
+      "name": "list_freight_rates",
+      "description": "查询运价列表，支持分页和筛选",
+      "method": "GET",
+      "path": "/v1/freight-rates",
+      "parameters": [
+        {
+          "name": "page",
+          "type": "integer",
+          "description": "页码，默认 1",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "description": "每页数量，默认 20",
+          "required": false
+        },
+        {
+          "name": "originPort",
+          "type": "string",
+          "description": "起运港名称，如：青岛、上海、深圳",
+          "required": false
+        },
+        {
+          "name": "destinationPort",
+          "type": "string",
+          "description": "目的港名称，如：墨尔本、洛杉矶、汉堡",
+          "required": false
+        },
+        {
+          "name": "carrier",
+          "type": "string",
+          "description": "船公司名称，如：COSCO、MSC、MAERSK",
+          "required": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "description": "状态：ACTIVE/EXPIRED/DRAFT/SUSPENDED",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "description": "全局搜索关键词",
+          "required": false
+        }
+      ],
+      "response_example": {
+        "success": true,
+        "data": {
+          "rates": [
+            {
+              "id": "uuid",
+              "originPort": "青岛",
+              "destinationPort": "墨尔本",
+              "viaPort": "釜山",
+              "carrier": "COSCO",
+              "transitTime": 25,
+              "price20GP": 1200,
+              "price40GP": 2000,
+              "price40HQ": 2100,
+              "currency": "USD",
+              "validFrom": "2026-03-01",
+              "validTo": "2026-03-31",
+              "status": "ACTIVE"
+            }
+          ],
+          "pagination": {
+            "page": 1,
+            "limit": 20,
+            "total": 150,
+            "totalPages": 8
+          }
+        }
+      }
+    },
+    {
+      "name": "get_freight_rate",
+      "description": "获取单条运价详情",
+      "method": "GET",
+      "path": "/v1/freight-rates/{id}",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "运价记录ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create_freight_rate",
+      "description": "创建新运价",
+      "method": "POST",
+      "path": "/v1/freight-rates",
+      "parameters": [
+        {
+          "name": "originPort",
+          "type": "string",
+          "description": "起运港（中文）",
+          "required": true
+        },
+        {
+          "name": "destinationPort",
+          "type": "string",
+          "description": "目的港（中文）",
+          "required": true
+        },
+        {
+          "name": "viaPort",
+          "type": "string",
+          "description": "中转港（可选）",
+          "required": false
+        },
+        {
+          "name": "transportMode",
+          "type": "string",
+          "description": "运输方式：SEA/AIR/LAND/RAIL",
+          "required": false,
+          "default": "SEA"
+        },
+        {
+          "name": "carrier",
+          "type": "string",
+          "description": "船公司",
+          "required": false
+        },
+        {
+          "name": "transitTime",
+          "type": "integer",
+          "description": "航程（天）",
+          "required": false
+        },
+        {
+          "name": "price20GP",
+          "type": "number",
+          "description": "20GP价格",
+          "required": false
+        },
+        {
+          "name": "price40GP",
+          "type": "number",
+          "description": "40GP价格",
+          "required": false
+        },
+        {
+          "name": "price40HQ",
+          "type": "number",
+          "description": "40HQ价格",
+          "required": false
+        },
+        {
+          "name": "price45HQ",
+          "type": "number",
+          "description": "45HQ价格",
+          "required": false
+        },
+        {
+          "name": "priceLCL",
+          "type": "number",
+          "description": "LCL每立方价格",
+          "required": false
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "description": "币种：USD/CNY/EUR",
+          "required": false,
+          "default": "USD"
+        },
+        {
+          "name": "surcharges",
+          "type": "array",
+          "description": "附加费数组",
+          "required": false
+        },
+        {
+          "name": "validFrom",
+          "type": "string",
+          "description": "生效日期 YYYY-MM-DD",
+          "required": true
+        },
+        {
+          "name": "validTo",
+          "type": "string",
+          "description": "到期日期 YYYY-MM-DD",
+          "required": true
+        },
+        {
+          "name": "remarks",
+          "type": "string",
+          "description": "备注",
+          "required": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "description": "状态：ACTIVE/DRAFT/SUSPENDED",
+          "required": false,
+          "default": "DRAFT"
+        }
+      ],
+      "request_example": {
+        "originPort": "青岛",
+        "destinationPort": "墨尔本",
+        "viaPort": "釜山",
+        "carrier": "COSCO",
+        "transitTime": 25,
+        "price20GP": 1200,
+        "price40GP": 2000,
+        "price40HQ": 2100,
+        "currency": "USD",
+        "surcharges": [
+          {"name": "ORC", "amount": 150, "unit": "per_container"},
+          {"name": "THC", "amount": 120, "unit": "per_container"}
+        ],
+        "validFrom": "2026-03-01",
+        "validTo": "2026-03-31",
+        "status": "ACTIVE"
+      }
+    },
+    {
+      "name": "update_freight_rate",
+      "description": "更新运价",
+      "method": "PUT",
+      "path": "/v1/freight-rates/{id}",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "运价记录ID",
+          "required": true
+        }
+      ],
+      "body": "create_freight_rate 相同的字段，传入需要更新的字段"
+    },
+    {
+      "name": "delete_freight_rate",
+      "description": "删除运价",
+      "method": "DELETE",
+      "path": "/v1/freight-rates/{id}",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "运价记录ID",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "import_freight_rates_from_excel",
+      "description": "从Excel导入运价数据",
+      "steps": [
+        "解析Excel文件",
+        "提取港口、船公司、价格等信息",
+        "循环调用 create_freight_rate 创建每条记录",
+        "返回导入结果统计"
+      ]
+    },
+    {
+      "name": "sync_freight_rates",
+      "description": "同步外部运价数据",
+      "steps": [
+        "查询现有运价作为基准",
+        "对比新数据与现有数据",
+        "更新变动的价格",
+        "标记过期的运价"
+      ]
+    }
+  ],
+  "data_structures": {
+    "freight_rate": {
+      "id": "string - UUID",
+      "originPort": "string - 起运港",
+      "destinationPort": "string - 目的港",
+      "viaPort": "string - 中转港",
+      "transportMode": "enum: SEA|AIR|LAND|RAIL",
+      "carrier": "string - 船公司",
+      "transitTime": "integer - 航程天数",
+      "price20GP": "number - 20GP价格",
+      "price40GP": "number - 40GP价格",
+      "price40HQ": "number - 40HQ价格",
+      "price45HQ": "number - 45HQ价格",
+      "priceLCL": "number - LCL每立方价格",
+      "currency": "enum: USD|CNY|EUR",
+      "surcharges": "array - 附加费列表",
+      "validFrom": "string - 生效日期 ISO",
+      "validTo": "string - 到期日期 ISO",
+      "status": "enum: ACTIVE|DRAFT|SUSPENDED|EXPIRED"
+    },
+    "surcharge": {
+      "name": "string - 费用名称",
+      "amount": "number - 金额",
+      "unit": "enum: per_container|per_ton|per_cbm|per_bl"
+    }
+  }
+}
