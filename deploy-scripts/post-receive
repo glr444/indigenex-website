@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Indigenex Website Deployment Hook
+# 使用 Prisma Migrate 替代 db push，避免数据丢失
+
+PROJECT_NAME="indigenex-website"
+DEPLOY_DIR="/var/www/${PROJECT_NAME}"
+BACKUP_DIR="/var/backups/${PROJECT_NAME}"
+APP_NAME="indigenex-backend"
+
+while read oldrev newrev refname; do
+    branch=$(git rev-parse --symbolic --abbrev-ref $refname)
+
+    if [ "$branch" = "main" ]; then
+        echo "🚀 开始部署..."
+
+        # 1. 更新代码
+        cd $DEPLOY_DIR || exit 1
+        git --git-dir=/var/git/${PROJECT_NAME}.git --work-tree=$DEPLOY_DIR checkout -f main
+
+        # 2. 备份数据库
+        mkdir -p $BACKUP_DIR
+        DB_PATH="${DEPLOY_DIR}/backend/prisma/dev.db"
+        if [ -f "$DB_PATH" ]; then
+            BACKUP_FILE="${BACKUP_DIR}/dev.db.backup.$(date +%Y%m%d_%H%M%S)"
+            cp $DB_PATH $BACKUP_FILE
+            echo "✓ 数据库已备份: $BACKUP_FILE"
+        fi
+
+        # 3. 构建前端
+        cd ${DEPLOY_DIR}/frontend && npm install && npm run build
+
+        # 4. 构建管理后台
+        cd ${DEPLOY_DIR}/admin && npm install && npm run build
+
+        # 5. 后端依赖 & 数据库迁移
+        cd ${DEPLOY_DIR}/backend && npm install
+
+        # 使用 migrate deploy 替代 db push --accept-data-loss
+        npx prisma migrate deploy
+
+        if [ $? -ne 0 ]; then
+            echo "✗ 迁移失败，恢复备份..."
+            [ -f "$BACKUP_FILE" ] && cp $BACKUP_FILE $DB_PATH
+            exit 1
+        fi
+
+        # 6. 重启服务
+        cd ${DEPLOY_DIR}/backend
+        if pm2 list | grep -q "$APP_NAME"; then
+            pm2 reload $APP_NAME --update-env
+        else
+            pm2 start server.js --name $APP_NAME
+        fi
+
+        echo "✅ 部署完成！"
+    fi
+done

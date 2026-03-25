@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Ship, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
+import TechWaveBackground from '../../components/TechWaveBackground';
 
 export default function PortalLoginPage() {
   const router = useRouter();
@@ -43,29 +44,16 @@ export default function PortalLoginPage() {
 
   return (
     <div className="min-h-screen flex" style={{ background: '#F5F5F7' }}>
-      {/* 左侧 - 品牌展示 */}
-      <div
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #1e3a5f 0%, #2d5a87 30%, #4a7c9b 60%, #6b9eb8 100%)',
-        }}
-      >
-        {/* 装饰性圆形 */}
+      {/* 左侧 - 品牌展示（科技波浪背景） */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* 科技波浪动态背景 */}
+        <TechWaveBackground />
+
+        {/* 渐变遮罩 - 增强文字可读性 */}
         <div
-          className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)' }}
-        />
-        <div
-          className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)' }}
-        />
-        {/* 网格纹理 */}
-        <div
-          className="absolute inset-0 opacity-5"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
+            background: 'radial-gradient(ellipse at center, transparent 0%, rgba(10,10,15,0.4) 100%)'
           }}
         />
 
