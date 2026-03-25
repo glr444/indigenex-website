@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
-import { LayoutDashboard, Newspaper, MessageSquare, LogOut, ChevronRight, Ship, Users, Anchor, Globe } from 'lucide-react'
+import { LayoutDashboard, Newspaper, MessageSquare, LogOut, ChevronRight, Ship, Users, Anchor, Globe, MapPin, Compass } from 'lucide-react'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -26,6 +26,8 @@ export default function Layout() {
     { label: t('nav.freightRates'), href: '/freight-rates', icon: Ship },
     { label: t('nav.members'), href: '/members', icon: Users },
     { label: t('nav.ports'), href: '/ports', icon: Anchor },
+    { label: t('routes.title'), href: '/routes', icon: MapPin },
+    { label: t('carriers.title'), href: '/carriers', icon: Compass },
   ]
 
   const isActive = (href: string) =>

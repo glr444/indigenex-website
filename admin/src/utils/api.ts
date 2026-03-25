@@ -166,3 +166,81 @@ export const memberApi = {
       method: 'DELETE'
     })
 }
+
+// Port API
+export const portApi = {
+  getAll: (query?: string) =>
+    request(`/admin/ports${query ? `?${query}` : ''}`),
+
+  getById: (id: string) =>
+    request(`/admin/ports/${id}`),
+
+  create: (data: any) =>
+    request('/admin/ports', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: any) =>
+    request(`/admin/ports/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  delete: (id: string) =>
+    request(`/admin/ports/${id}`, {
+      method: 'DELETE'
+    })
+}
+
+// Route API
+export const routeApi = {
+  getAll: (query?: string) =>
+    request(`/admin/routes${query ? `?${query}` : ''}`),
+
+  getById: (id: string) =>
+    request(`/admin/routes/${id}`),
+
+  create: (data: any) =>
+    request('/admin/routes', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: any) =>
+    request(`/admin/routes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  delete: (id: string) =>
+    request(`/admin/routes/${id}`, {
+      method: 'DELETE'
+    })
+}
+
+// Carrier API
+export const carrierApi = {
+  getAll: (query?: string) =>
+    request(`/admin/carriers${query ? `?${query}` : ''}`),
+
+  getById: (id: string) =>
+    request(`/admin/carriers/${id}`),
+
+  create: (data: any) =>
+    request('/admin/carriers', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: any) =>
+    request(`/admin/carriers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  delete: (id: string) =>
+    request(`/admin/carriers/${id}`, {
+      method: 'DELETE'
+    })
+}

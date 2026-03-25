@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   X,
   Save,
@@ -17,7 +18,25 @@ import {
   Package,
   MapPin
 } from 'lucide-react'
-import { freightRateApi } from '../../utils/api'
+import { freightRateApi, portApi, carrierApi } from '../../utils/api'
+
+interface Port {
+  id: string
+  code: string
+  name: string
+  nameEn: string
+  country: string
+  city: string
+  isActive?: boolean
+}
+
+interface Carrier {
+  id: string
+  code: string
+  name: string
+  nameEn: string
+  isActive?: boolean
+}
 
 interface Surcharge {
   name: string
@@ -168,10 +187,11 @@ interface SlideOverPanelProps {
   children: React.ReactNode
   onSave?: () => void
   saving?: boolean
+  t: (key: string) => string
 }
 
 // 右侧划入卡片组件 - 半透明遮罩
-function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, saving }: SlideOverPanelProps) {
+function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, saving, t }: SlideOverPanelProps) {
   const [showBackdrop, setShowBackdrop] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
 
@@ -190,17 +210,23 @@ function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, sa
   return (
     <div style={{
       position: 'fixed',
-      inset: 0,
-      zIndex: 100,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 1000,
       pointerEvents: showPanel ? 'auto' : 'none'
     }}>
-      {/* Backdrop - 半透明遮罩，可以看到后面的列表 */}
+      {/* Backdrop - 半透明遮罩 */}
       <div
         onClick={onClose}
         style={{
           position: 'absolute',
-          inset: 0,
-          background: 'rgba(0,0,0,0.2)',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.35)',
           opacity: showPanel ? 1 : 0,
           transition: 'opacity 0.3s ease'
         }}
@@ -214,7 +240,7 @@ function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, sa
         bottom: 0,
         width: 'min(680px, 90vw)',
         background: '#F5F5F7',
-        boxShadow: '-10px 0 40px rgba(0,0,0,0.15)',
+        boxShadow: '-10px 0 40px rgba(0,0,0,0.25)',
         transform: showPanel ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
         display: 'flex',
@@ -313,7 +339,7 @@ function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, sa
                 transition: 'all 0.15s ease'
               }}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               onClick={onSave}
@@ -335,7 +361,7 @@ function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, sa
               }}
             >
               <Save size={18} />
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? t('freightRates.saving') : t('common.save')}
             </button>
           </div>
         )}
@@ -347,12 +373,42 @@ function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, sa
 export default function FreightRateEdit() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const { t } = useTranslation()
   const isEditing = Boolean(id)
 
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [loading, setLoading] = useState(isEditing)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Base data states
+  const [ports, setPorts] = useState<Port[]>([])
+  const [carriers, setCarriers] = useState<Carrier[]>([])
+  const [baseDataLoading, setBaseDataLoading] = useState(true)
+
+  // Fetch base data
+  useEffect(() => {
+    const fetchBaseData = async () => {
+      try {
+        setBaseDataLoading(true)
+        const [portsRes, carriersRes] = await Promise.all([
+          portApi.getAll(),
+          carrierApi.getAll()
+        ])
+        if (portsRes.success) {
+          setPorts((portsRes.data as any).ports || [])
+        }
+        if (carriersRes.success) {
+          setCarriers((carriersRes.data as any).carriers || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch base data:', err)
+      } finally {
+        setBaseDataLoading(false)
+      }
+    }
+    fetchBaseData()
+  }, [])
 
   const fetchRate = useCallback(async () => {
     if (!id) return
@@ -428,11 +484,11 @@ export default function FreightRateEdit() {
         })
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load freight rate')
+      setError(err.message || t('freightRates.fetchFailed'))
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, t])
 
   useEffect(() => {
     if (isEditing && id) {
@@ -472,7 +528,7 @@ export default function FreightRateEdit() {
       }
       navigate('/freight-rates')
     } catch (err: any) {
-      setError(err.message || 'Save failed')
+      setError(err.message || t('freightRates.saveFailed'))
       setSaving(false)
     }
   }
@@ -572,18 +628,69 @@ export default function FreightRateEdit() {
     </div>
   )
 
+  // Port Select Component
+  const PortSelect = ({ label, value, onChange, required }: { label: string, value: string, onChange: (val: string) => void, required?: boolean }) => (
+    <div>
+      <label style={labelStyle}>
+        {label}
+        {required && <span style={{ color: '#FF3B30' }}> *</span>}
+      </label>
+      {baseDataLoading ? (
+        <div style={{ ...inputStyle, color: '#86868B' }}>{t('common.loading')}...</div>
+      ) : (
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          style={inputStyle}
+        >
+          <option value="">{t('freightRates.selectPort')}</option>
+          {ports.filter(p => p.isActive !== false).map(port => (
+            <option key={port.id} value={port.code}>
+              {port.code} - {port.name} ({port.nameEn})
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  )
+
+  // Carrier Select Component
+  const CarrierSelect = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      {baseDataLoading ? (
+        <div style={{ ...inputStyle, color: '#86868B' }}>{t('common.loading')}...</div>
+      ) : (
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={inputStyle}
+        >
+          <option value="">{t('freightRates.selectCarrier')}</option>
+          {carriers.filter(c => c.isActive !== false).map(carrier => (
+            <option key={carrier.id} value={carrier.code}>
+              {carrier.code} - {carrier.name}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  )
+
   return (
     <SlideOverPanel
       isOpen={true}
       onClose={() => navigate('/freight-rates')}
-      title={isEditing ? 'Edit Sea FCL Rate' : 'New Sea FCL Rate'}
-      subtitle="SEA FCL Freight Rate Management"
+      title={isEditing ? t('freightRates.editRate') : t('freightRates.newRate')}
+      subtitle={t('freightRates.seaFCL')}
       onSave={handleSave}
       saving={saving}
+      t={t}
     >
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-          <div style={{ color: '#86868B', fontSize: 14 }}>Loading...</div>
+          <div style={{ color: '#86868B', fontSize: 14 }}>{t('common.loading')}</div>
         </div>
       ) : (
         <>
@@ -605,19 +712,19 @@ export default function FreightRateEdit() {
           )}
 
           {/* Basic Info */}
-          <Section title="Basic Information" icon={Anchor}>
+          <Section title={t('freightRates.basicInfo')} icon={Anchor}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <Input
-                label="Route Name"
+                label={t('freightRates.route')}
                 value={formData.route}
                 onChange={(v) => setFormData(prev => ({ ...prev, route: v }))}
-                placeholder="e.g. Far East - West Coast"
+                placeholder={t('freightRates.route')}
               />
               <Input
-                label="Route Code"
+                label={t('freightRates.routeCode')}
                 value={formData.routeCode}
                 onChange={(v) => setFormData(prev => ({ ...prev, routeCode: v }))}
-                placeholder="e.g. FEA-WC"
+                placeholder={t('freightRates.routeCode')}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -629,7 +736,7 @@ export default function FreightRateEdit() {
                   style={{ width: 18, height: 18, accentColor: '#007AFF' }}
                 />
                 <Star size={16} style={{ color: formData.isRecommended ? '#FF9500' : '#86868B' }} />
-                <span style={{ fontSize: 14, color: '#3A3A3C' }}>Recommended Rate</span>
+                <span style={{ fontSize: 14, color: '#3A3A3C' }}>{t('freightRates.isRecommended')}</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                 <input
@@ -638,41 +745,38 @@ export default function FreightRateEdit() {
                   onChange={(e) => setFormData(prev => ({ ...prev, isAllIn: e.target.checked }))}
                   style={{ width: 18, height: 18, accentColor: '#007AFF' }}
                 />
-                <span style={{ fontSize: 14, color: '#3A3A3C' }}>ALL IN Price</span>
+                <span style={{ fontSize: 14, color: '#3A3A3C' }}>{t('freightRates.isAllIn')}</span>
               </label>
             </div>
           </Section>
 
           {/* Port Information */}
-          <Section title="Port Information" icon={MapPin}>
+          <Section title={t('freightRates.portInfo')} icon={MapPin}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 1fr', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-              <Input
-                label="Origin Port (POL)"
+              <PortSelect
+                label={t('freightRates.originPort')}
                 value={formData.originPort}
                 onChange={(v) => setFormData(prev => ({ ...prev, originPort: v }))}
-                placeholder="e.g. Shanghai"
                 required
               />
               <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 20 }}>
                 <ChevronRight size={20} style={{ color: '#C7C7CC' }} />
               </div>
-              <Input
-                label="Destination Port (POD)"
+              <PortSelect
+                label={t('freightRates.destinationPort')}
                 value={formData.destinationPort}
                 onChange={(v) => setFormData(prev => ({ ...prev, destinationPort: v }))}
-                placeholder="e.g. Los Angeles"
                 required
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Input
-                label="Via Port"
+              <PortSelect
+                label={t('freightRates.viaPort')}
                 value={formData.viaPort}
                 onChange={(v) => setFormData(prev => ({ ...prev, viaPort: v }))}
-                placeholder="Optional"
               />
               <Input
-                label="Port Area"
+                label={t('freightRates.portArea')}
                 value={formData.portArea}
                 onChange={(v) => setFormData(prev => ({ ...prev, portArea: v }))}
                 placeholder="e.g. Yangshan"
@@ -681,10 +785,10 @@ export default function FreightRateEdit() {
           </Section>
 
           {/* Validity */}
-          <Section title="Validity Period" icon={Calendar}>
+          <Section title={t('freightRates.validityPeriod')} icon={Calendar}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <div>
-                <label style={labelStyle}>Valid From *</label>
+                <label style={labelStyle}>{t('freightRates.validFrom')} *</label>
                 <input
                   type="date"
                   required
@@ -694,7 +798,7 @@ export default function FreightRateEdit() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Valid To *</label>
+                <label style={labelStyle}>{t('freightRates.validTo')} *</label>
                 <input
                   type="date"
                   required
@@ -704,37 +808,36 @@ export default function FreightRateEdit() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Type</label>
+                <label style={labelStyle}>{t('freightRates.validityType')}</label>
                 <select
                   value={formData.validityType}
                   onChange={(e) => setFormData(prev => ({ ...prev, validityType: e.target.value as any }))}
                   style={inputStyle}
                 >
-                  <option value="LONG">Long-term</option>
-                  <option value="SHORT">Short-term</option>
+                  <option value="LONG">{t('freightRates.longTerm')}</option>
+                  <option value="SHORT">{t('freightRates.shortTerm')}</option>
                 </select>
               </div>
             </div>
           </Section>
 
           {/* Carrier & Transit */}
-          <Section title="Carrier & Transit" icon={Ship}>
+          <Section title={t('freightRates.carrierTransit')} icon={Ship}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <Input
-                label="Carrier"
+              <CarrierSelect
+                label={t('freightRates.carrier')}
                 value={formData.carrier}
                 onChange={(v) => setFormData(prev => ({ ...prev, carrier: v }))}
-                placeholder="e.g. COSCO"
               />
               <Input
-                label="Transit Time (Days)"
+                label={t('freightRates.transitTime')}
                 value={formData.transitTime}
                 onChange={(v) => setFormData(prev => ({ ...prev, transitTime: v }))}
                 type="number"
                 placeholder="e.g. 14"
               />
               <Input
-                label="Schedule"
+                label={t('freightRates.schedule')}
                 value={formData.schedule}
                 onChange={(v) => setFormData(prev => ({ ...prev, schedule: v }))}
                 placeholder="e.g. Mon/Wed/Fri"
@@ -742,37 +845,37 @@ export default function FreightRateEdit() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <Input
-                label="Vessel Name"
+                label={t('freightRates.vesselName')}
                 value={formData.vesselName}
                 onChange={(v) => setFormData(prev => ({ ...prev, vesselName: v }))}
                 placeholder="Optional"
               />
               <Input
-                label="Voyage"
+                label={t('freightRates.voyage')}
                 value={formData.voyage}
                 onChange={(v) => setFormData(prev => ({ ...prev, voyage: v }))}
                 placeholder="Optional"
               />
               <div>
-                <label style={labelStyle}>Space Status</label>
+                <label style={labelStyle}>{t('freightRates.spaceStatus')}</label>
                 <select
                   value={formData.spaceStatus}
                   onChange={(e) => setFormData(prev => ({ ...prev, spaceStatus: e.target.value as any }))}
                   style={inputStyle}
                 >
-                  <option value="AVAILABLE">Available</option>
-                  <option value="LIMITED">Limited</option>
-                  <option value="FULL">Full</option>
-                  <option value="SUSPENDED">Suspended</option>
+                  <option value="AVAILABLE">{t('freightRates.spaceAvailable')}</option>
+                  <option value="LIMITED">{t('freightRates.spaceLimited')}</option>
+                  <option value="FULL">{t('freightRates.spaceFull')}</option>
+                  <option value="SUSPENDED">{t('freightRates.spaceSuspended')}</option>
                 </select>
               </div>
             </div>
           </Section>
 
           {/* Pricing */}
-          <Section title="Pricing (Sell)" icon={DollarSign}>
+          <Section title={t('freightRates.pricing')} icon={DollarSign}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 13, color: '#86868B' }}>Container rates in {formData.currency}</span>
+              <span style={{ fontSize: 13, color: '#86868B' }}>{t('freightRates.currency')}: {formData.currency}</span>
               <select
                 value={formData.currency}
                 onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
@@ -791,22 +894,22 @@ export default function FreightRateEdit() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
               <PriceInput
-                label="20'GP"
+                label={t('freightRates.price20GP')}
                 value={formData.price20GP}
                 onChange={(v) => setFormData(prev => ({ ...prev, price20GP: v }))}
               />
               <PriceInput
-                label="40'GP"
+                label={t('freightRates.price40GP')}
                 value={formData.price40GP}
                 onChange={(v) => setFormData(prev => ({ ...prev, price40GP: v }))}
               />
               <PriceInput
-                label="40'HQ"
+                label={t('freightRates.price40HQ')}
                 value={formData.price40HQ}
                 onChange={(v) => setFormData(prev => ({ ...prev, price40HQ: v }))}
               />
               <PriceInput
-                label="45'HQ"
+                label={t('freightRates.price45HQ')}
                 value={formData.price45HQ}
                 onChange={(v) => setFormData(prev => ({ ...prev, price45HQ: v }))}
               />
@@ -814,25 +917,25 @@ export default function FreightRateEdit() {
           </Section>
 
           {/* Cost */}
-          <Section title="Cost Price (Optional)" icon={TrendingUp}>
+          <Section title={t('freightRates.costPrice')} icon={TrendingUp}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
               <PriceInput
-                label="20'GP Cost"
+                label={t('freightRates.cost20GP')}
                 value={formData.cost20GP}
                 onChange={(v) => setFormData(prev => ({ ...prev, cost20GP: v }))}
               />
               <PriceInput
-                label="40'GP Cost"
+                label={t('freightRates.cost40GP')}
                 value={formData.cost40GP}
                 onChange={(v) => setFormData(prev => ({ ...prev, cost40GP: v }))}
               />
               <PriceInput
-                label="40'HQ Cost"
+                label={t('freightRates.cost40HQ')}
                 value={formData.cost40HQ}
                 onChange={(v) => setFormData(prev => ({ ...prev, cost40HQ: v }))}
               />
               <PriceInput
-                label="45'HQ Cost"
+                label={t('freightRates.cost45HQ')}
                 value={formData.cost45HQ}
                 onChange={(v) => setFormData(prev => ({ ...prev, cost45HQ: v }))}
               />
@@ -840,16 +943,16 @@ export default function FreightRateEdit() {
           </Section>
 
           {/* Booking */}
-          <Section title="Booking Information" icon={User}>
+          <Section title={t('freightRates.bookingInfo')} icon={User}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <Input
-                label="Booking Agent"
+                label={t('freightRates.bookingAgent')}
                 value={formData.bookingAgent}
                 onChange={(v) => setFormData(prev => ({ ...prev, bookingAgent: v }))}
                 placeholder="Agent name or company"
               />
               <Input
-                label="Booking Link"
+                label={t('freightRates.bookingLink')}
                 value={formData.bookingLink}
                 onChange={(v) => setFormData(prev => ({ ...prev, bookingLink: v }))}
                 placeholder="https://..."
@@ -857,65 +960,65 @@ export default function FreightRateEdit() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <Input
-                label="Contact Info"
+                label={t('freightRates.contactInfo')}
                 value={formData.contactInfo}
                 onChange={(v) => setFormData(prev => ({ ...prev, contactInfo: v }))}
                 placeholder="Phone or email"
               />
               <div>
-                <label style={labelStyle}>Price Trend</label>
+                <label style={labelStyle}>{t('freightRates.priceTrend')}</label>
                 <select
                   value={formData.priceTrend}
                   onChange={(e) => setFormData(prev => ({ ...prev, priceTrend: e.target.value as any }))}
                   style={inputStyle}
                 >
-                  <option value="">Select trend</option>
-                  <option value="UP">Up</option>
-                  <option value="DOWN">Down</option>
-                  <option value="STABLE">Stable</option>
+                  <option value="">{t('freightRates.selectRoute')}</option>
+                  <option value="UP">{t('freightRates.trendUp')}</option>
+                  <option value="DOWN">{t('freightRates.trendDown')}</option>
+                  <option value="STABLE">{t('freightRates.trendStable')}</option>
                 </select>
               </div>
             </div>
           </Section>
 
           {/* Cutoff & Documentation */}
-          <Section title="Documentation" icon={FileText}>
+          <Section title={t('freightRates.documentation')} icon={FileText}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
               <Input
-                label="Doc Cutoff Day"
+                label={t('freightRates.docCutoffDay')}
                 value={formData.docCutoffDay}
                 onChange={(v) => setFormData(prev => ({ ...prev, docCutoffDay: v }))}
                 placeholder="e.g. Tuesday"
               />
               <Input
-                label="Doc Cutoff Time"
+                label={t('freightRates.docCutoffTime')}
                 value={formData.docCutoffTime}
                 onChange={(v) => setFormData(prev => ({ ...prev, docCutoffTime: v }))}
                 placeholder="e.g. 12:00"
               />
               <div>
-                <label style={labelStyle}>B/L Type</label>
+                <label style={labelStyle}>{t('freightRates.billOfLadingType')}</label>
                 <select
                   value={formData.billOfLadingType}
                   onChange={(e) => setFormData(prev => ({ ...prev, billOfLadingType: e.target.value }))}
                   style={inputStyle}
                 >
-                  <option value="">Select type</option>
-                  <option value="ORIGINAL">Original B/L</option>
-                  <option value="TELEX_RELEASE">Telex Release</option>
-                  <option value="SEA_WAYBILL">Sea Waybill</option>
+                  <option value="">{t('freightRates.selectRoute')}</option>
+                  <option value="ORIGINAL">{t('freightRates.blOriginal')}</option>
+                  <option value="TELEX_RELEASE">{t('freightRates.blTelex')}</option>
+                  <option value="SEA_WAYBILL">{t('freightRates.blSeaWaybill')}</option>
                 </select>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={labelStyle}>Shipping Terms</label>
+                <label style={labelStyle}>{t('freightRates.shippingTerms')}</label>
                 <select
                   value={formData.shippingTerms}
                   onChange={(e) => setFormData(prev => ({ ...prev, shippingTerms: e.target.value }))}
                   style={inputStyle}
                 >
-                  <option value="">Select terms</option>
+                  <option value="">{t('freightRates.selectRoute')}</option>
                   <option value="CY-CY">CY-CY</option>
                   <option value="CFS-CFS">CFS-CFS</option>
                   <option value="CY-CFS">CY-CFS</option>
@@ -924,7 +1027,7 @@ export default function FreightRateEdit() {
                 </select>
               </div>
               <Input
-                label="Weight Limit"
+                label={t('freightRates.weightLimit')}
                 value={formData.weightLimit}
                 onChange={(v) => setFormData(prev => ({ ...prev, weightLimit: v }))}
                 placeholder="e.g. 21 tons for 20GP"
@@ -933,9 +1036,9 @@ export default function FreightRateEdit() {
           </Section>
 
           {/* Surcharges */}
-          <Section title="Surcharges" icon={Package}>
+          <Section title={t('freightRates.surcharges')} icon={Package}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 13, color: '#86868B' }}>Additional charges</span>
+              <span style={{ fontSize: 13, color: '#86868B' }}>{t('freightRates.surcharges')}</span>
               <button
                 type="button"
                 onClick={addSurcharge}
@@ -950,7 +1053,7 @@ export default function FreightRateEdit() {
                   cursor: 'pointer'
                 }}
               >
-                + Add
+                + {t('common.create')}
               </button>
             </div>
 
@@ -963,7 +1066,7 @@ export default function FreightRateEdit() {
                 background: '#F5F5F7',
                 borderRadius: 10
               }}>
-                No surcharges added
+                {t('freightRates.noData')}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1014,7 +1117,7 @@ export default function FreightRateEdit() {
                         fontSize: 12
                       }}
                     >
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </div>
                 ))}
@@ -1023,9 +1126,9 @@ export default function FreightRateEdit() {
           </Section>
 
           {/* Remarks & Status */}
-          <Section title="Remarks & Status" icon={Clock}>
+          <Section title={t('freightRates.remarksStatus')} icon={Clock}>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Remarks</label>
+              <label style={labelStyle}>{t('freightRates.remarks')}</label>
               <textarea
                 value={formData.remarks}
                 onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
@@ -1035,11 +1138,11 @@ export default function FreightRateEdit() {
               />
             </div>
             <div>
-              <label style={labelStyle}>Status</label>
+              <label style={labelStyle}>{t('freightRates.status')}</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[
-                  { value: 'ACTIVE', label: 'Active', color: '#34C759' },
-                  { value: 'INACTIVE', label: 'Inactive', color: '#8E8E93' }
+                  { value: 'ACTIVE', label: t('freightRates.active'), color: '#34C759' },
+                  { value: 'INACTIVE', label: t('freightRates.inactive'), color: '#8E8E93' }
                 ].map((status) => (
                   <label
                     key={status.value}

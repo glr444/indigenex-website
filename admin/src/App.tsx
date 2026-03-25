@@ -13,6 +13,10 @@ import FreightRateList from './pages/freight-rates/FreightRateList'
 import FreightRateEdit from './pages/freight-rates/FreightRateEdit'
 import MemberList from './pages/members/MemberList'
 import PortList from './pages/ports/PortList'
+import RouteList from './pages/routes/RouteList'
+import RouteEdit from './pages/routes/RouteEdit'
+import CarrierList from './pages/carriers/CarrierList'
+import CarrierEdit from './pages/carriers/CarrierEdit'
 
 function App() {
   return (
@@ -41,6 +45,12 @@ function App() {
           <Route path="freight-rates/edit/:id" element={<FreightRateEdit />} />
           <Route path="members" element={<MemberList />} />
           <Route path="ports" element={<PortList />} />
+          <Route path="routes" element={<RouteList />} />
+          <Route path="routes/new" element={<RouteEdit />} />
+          <Route path="routes/edit/:id" element={<RouteEdit />} />
+          <Route path="carriers" element={<CarrierList />} />
+          <Route path="carriers/new" element={<CarrierEdit />} />
+          <Route path="carriers/edit/:id" element={<CarrierEdit />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

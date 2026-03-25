@@ -231,14 +231,55 @@ model Port {
   countryCode String?  // 国家代码
   countryName String?  // 国家名称
   region      String?  // 区域（如：东南亚、欧洲等）
+  routeId     String?  // 所属航线
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  route Route? @relation(fields: [routeId], references: [id])
 
   @@index([code])
   @@index([nameEn])
   @@index([nameCn])
   @@index([region])
+  @@index([routeId])
+}
+
+// 航线基础表
+model Route {
+  id          String   @id @default(uuid())
+  code        String   @unique // 航线代码
+  nameEn      String   // 英文名称
+  nameCn      String   // 中文名称
+  description String?  // 描述
+  regionFrom  String?  // 起始区域
+  regionTo    String?  // 目的区域
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ports Port[]
+
+  @@index([code])
+  @@index([nameEn])
+  @@index([nameCn])
+}
+
+// 船公司基础表
+model Carrier {
+  id          String   @id @default(uuid())
+  code        String   @unique // 船公司代码
+  name        String   // 船公司名称
+  nameEn      String?  // 英文名称
+  logo        String?  // Logo URL
+  website     String?  // 官网
+  contactInfo String?  // 联系方式
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([code])
+  @@index([name])
 }
 
 // 会员港口偏好（用于记录查询习惯）

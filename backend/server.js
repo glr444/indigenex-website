@@ -15,6 +15,8 @@ const adminPortRoutes = require('./src/routes/adminPorts');
 const orderRoutes = require('./src/routes/orders');
 const publicApiRoutes = require('./src/routes/publicApi');
 const portRoutes = require('./src/routes/ports');
+const routeRoutes = require('./src/routes/routes');
+const carrierRoutes = require('./src/routes/carriers');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -71,6 +73,8 @@ app.use('/api/freight-rates', freightRateRoutes);  // 公开运价查询
 app.use('/api/admin/freight-rates', freightRateRoutes);  // 后台管理
 app.use('/api/admin/members', adminMemberRoutes);
 app.use('/api/admin/ports', adminPortRoutes);
+app.use('/api/admin/routes', routeRoutes);
+app.use('/api/admin/carriers', carrierRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/v1', publicApiRoutes);
 app.use('/api/ports', portRoutes);
