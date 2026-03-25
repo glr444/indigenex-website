@@ -108,7 +108,7 @@ function PortSelector({
 
       if (searchTerm) {
         const response = await fetch(
-          `http://localhost:5001/api/ports/search?q=${encodeURIComponent(searchTerm)}&limit=20`,
+          `/api/ports/search?q=${encodeURIComponent(searchTerm)}&limit=20`,
           { headers }
         );
         const data = await response.json();
@@ -118,7 +118,7 @@ function PortSelector({
         }
       } else {
         const response = await fetch(
-          `http://localhost:5001/api/ports/popular?type=${type}`,
+          `/api/ports/popular?type=${type}`,
           { headers }
         );
         const data = await response.json();
@@ -139,7 +139,7 @@ function PortSelector({
     if (!token) return;
 
     try {
-      await fetch(`http://localhost:5001/api/ports/${portCode}/preference`, {
+      await fetch(`/api/ports/${portCode}/preference`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -621,7 +621,7 @@ export default function FreightRatesPage() {
       if (!token) return;
 
       try {
-        const response = await fetch('http://localhost:5001/api/member/profile', {
+        const response = await fetch('/api/members/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await response.json();
@@ -659,7 +659,7 @@ export default function FreightRatesPage() {
       if (filters.carrier) params.append('carrier', filters.carrier);
 
       const response = await fetch(
-        `http://localhost:5001/api/freight-rates/public?${params.toString()}`,
+        `/api/freight-rates/public?${params.toString()}`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }

@@ -64,7 +64,7 @@ export default function OrdersPage() {
       if (dateRange.end) params.append('endDate', dateRange.end);
 
       const response = await fetch(
-        `http://localhost:5001/api/orders?${params.toString()}`,
+        `/api/orders?${params.toString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

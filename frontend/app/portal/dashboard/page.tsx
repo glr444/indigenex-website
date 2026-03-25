@@ -37,7 +37,7 @@ export default function DashboardPage() {
 
       // Get orders list (limit 5)
       const ordersRes = await fetch(
-        'http://localhost:5001/api/orders?page=1&limit=5',
+        '/api/orders?page=1&limit=5',
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -46,7 +46,7 @@ export default function DashboardPage() {
 
       // Get freight rates stats
       const ratesRes = await fetch(
-        'http://localhost:5001/api/freight-rates/public?page=1&limit=1',
+        '/api/freight-rates/public?page=1&limit=1',
         {
           headers: { Authorization: `Bearer ${token}` },
         }
