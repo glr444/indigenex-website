@@ -47,7 +47,7 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('memberToken');
-      const response = await fetch('/api/members/profile', {
+      const response = await fetch('/api/member/profile', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -76,7 +76,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('memberToken');
-      const response = await fetch('/api/members/profile', {
+      const response = await fetch('/api/member/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
