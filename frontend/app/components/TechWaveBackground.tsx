@@ -11,6 +11,7 @@ interface WaveLine {
   alpha: number;
   lineWidth: number;
   color: string;
+  glow: number;
 }
 
 interface Particle {
@@ -62,8 +63,9 @@ export default function TechWaveBackground() {
       { r: 0, g: 255, b: 200 },   // 薄荷绿
     ];
 
-    wavesRef.current = Array.from({ length: 5 }, (_, i) => ({
-      y: 0, // 会在动画中动态设置
+    // 基础波浪线条
+    const baseWaves = Array.from({ length: 5 }, (_, i) => ({
+      y: 0,
       amplitude: 30 + Math.random() * 40,
       frequency: 0.002 + Math.random() * 0.003,
       speed: 0.008 + Math.random() * 0.012,
@@ -71,7 +73,23 @@ export default function TechWaveBackground() {
       alpha: 0.15 + Math.random() * 0.25,
       lineWidth: 1 + Math.random() * 2,
       color: `rgba(${colors[i % colors.length].r}, ${colors[i % colors.length].g}, ${colors[i % colors.length].b}`,
+      glow: 0,
     }));
+
+    // 新增：高亮科技感主线条 - 更亮、更粗、带发光效果
+    const highlightWave = {
+      y: 0,
+      amplitude: 45,
+      frequency: 0.003,
+      speed: 0.015,
+      phase: 0,
+      alpha: 0.8,
+      lineWidth: 3,
+      color: 'rgba(0, 230, 255',
+      glow: 15, // 发光强度
+    };
+
+    wavesRef.current = [...baseWaves, highlightWave];
 
     // 初始化粒子
     const initParticles = () => {
@@ -114,23 +132,37 @@ export default function TechWaveBackground() {
 
     // 绘制波浪
     const drawWave = (wave: WaveLine, width: number, height: number, time: number) => {
+      const y = wave.y +
+        Math.sin(wave.phase + time * wave.speed) * wave.amplitude * 0.3;
+
+      // 绘制发光效果
+      if (wave.glow > 0) {
+        ctx.save();
+        ctx.shadowBlur = wave.glow;
+        ctx.shadowColor = wave.color.replace('rgba', '').replace(')', ', 0.5)').replace('(, ', '(');
+      }
+
       ctx.beginPath();
       ctx.strokeStyle = `${wave.color}, ${wave.alpha})`;
       ctx.lineWidth = wave.lineWidth;
+      ctx.lineCap = 'round';
 
-      // 使用贝塞尔曲线绘制平滑波浪
-      for (let x = 0; x <= width; x += 5) {
-        const y = wave.y +
+      for (let x = 0; x <= width; x += 3) {
+        const wy = y +
           Math.sin(x * wave.frequency + time * wave.speed + wave.phase) * wave.amplitude +
-          Math.sin(x * wave.frequency * 0.5 + time * wave.speed * 0.7) * (wave.amplitude * 0.5);
+          Math.sin(x * wave.frequency * 0.5 + time * wave.speed * 0.7 + wave.phase * 0.5) * (wave.amplitude * 0.5);
 
         if (x === 0) {
-          ctx.moveTo(x, y);
+          ctx.moveTo(x, wy);
         } else {
-          ctx.lineTo(x, y);
+          ctx.lineTo(x, wy);
         }
       }
       ctx.stroke();
+
+      if (wave.glow > 0) {
+        ctx.restore();
+      }
     };
 
     // 绘制粒子
@@ -222,7 +254,12 @@ export default function TechWaveBackground() {
 
       // 绘制波浪（分布在不同高度）
       wavesRef.current.forEach((wave, index) => {
-        wave.y = height * (0.3 + index * 0.15);
+        // 高亮波浪居中，其他波浪分布在上下
+        if (wave.glow > 0) {
+          wave.y = height * 0.5; // 高亮波浪在中心
+        } else {
+          wave.y = height * (0.25 + (index % 5) * 0.12);
+        }
         drawWave(wave, width, height, time);
       });
 

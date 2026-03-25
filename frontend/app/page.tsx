@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plane, Ship, Truck, TrainFront, ArrowUpRight, ChevronRight, Phone, Mail, MapPin } from 'lucide-react';
+import TechFooter from './components/TechFooter';
 
 // PC端首页组件
 function DesktopHomePage() {
@@ -485,23 +486,8 @@ function MobileHomePage() {
         </div>
       </section>
 
-      {/* Mobile Footer - Simplified */}
-      <footer className="bg-[#1D1D1F] py-8 px-5">
-        <div className="text-center">
-          <div className="text-[20px] font-bold text-white mb-2">Carggo GM</div>
-          <p className="text-[12px] text-white/50 mb-4">
-            Bridging Tradition & Modern Logistics
-          </p>
-          <div className="flex justify-center gap-6 text-[12px] text-white/70">
-            <Link href="/about/" className="active:text-white">About</Link>
-            <Link href="/services/" className="active:text-white">Services</Link>
-            <Link href="/contact/" className="active:text-white">Contact</Link>
-          </div>
-          <div className="mt-6 pt-6 border-t border-white/10 text-[11px] text-white/40">
-            © 2024 Carggo GM. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      {/* Mobile Footer - Tech Wave Background */}
+      <TechFooter />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Award, Users, Globe, Shield } from 'lucide-react';
+import TechFooter from '../components/TechFooter';
 
 // PC端关于页
 function DesktopAboutPage() {
@@ -187,6 +188,9 @@ function DesktopAboutPage() {
           </Link>
         </div>
       </section>
+
+      {/* Tech Footer with Animated Wave Background */}
+      <TechFooter />
     </>
   );
 }
@@ -350,6 +354,9 @@ function MobileAboutPage() {
           </Link>
         </div>
       </section>
+
+      {/* Tech Footer with Animated Wave Background */}
+      <TechFooter />
     </div>
   );
 }
