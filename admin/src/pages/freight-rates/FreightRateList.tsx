@@ -10,27 +10,58 @@ import {
   Trash2,
   Ship,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Star,
+  Calendar
 } from 'lucide-react'
 import { freightRateApi } from '../../utils/api'
 
 interface FreightRate {
   id: string
+  route: string | null
   originPort: string
+  originPortEn: string | null
   destinationPort: string
+  destinationPortEn: string | null
   viaPort: string | null
-  transportMode: string
+  viaPortEn: string | null
+  portArea: string | null
   validFrom: string
   validTo: string
+  validityType: string
+  isRecommended: boolean
   price20GP: number | null
   price40GP: number | null
   price40HQ: number | null
-  priceLCL: number | null
+  price45HQ: number | null
   currency: string
+  cost20GP: number | null
+  cost40GP: number | null
+  cost40HQ: number | null
+  cost45HQ: number | null
+  isAllIn: boolean
   carrier: string | null
+  carrierLogo: string | null
   transitTime: number | null
-  status: string
+  schedule: string | null
+  routeCode: string | null
+  vesselName: string | null
+  voyage: string | null
+  sailingDate: string | null
+  estimatedDeparture: string | null
+  bookingAgent: string | null
+  bookingLink: string | null
+  spaceStatus: string
+  docCutoffDay: string | null
+  docCutoffTime: string | null
+  billOfLadingType: string | null
+  shippingTerms: string | null
+  surcharges: string | null
+  weightLimit: string | null
+  priceTrend: string | null
+  contactInfo: string | null
   remarks: string | null
+  status: string
   createdAt: string
   updatedAt: string
 }
@@ -43,7 +74,7 @@ export default function FreightRateList() {
   const [, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [filterMode, setFilterMode] = useState('')
+  const [filterSpaceStatus, setFilterSpaceStatus] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
@@ -56,7 +87,7 @@ export default function FreightRateList() {
       const params = new URLSearchParams()
       if (searchTerm) params.append('search', searchTerm)
       if (filterStatus) params.append('status', filterStatus)
-      if (filterMode) params.append('mode', filterMode)
+      if (filterSpaceStatus) params.append('spaceStatus', filterSpaceStatus)
       params.append('page', currentPage.toString())
       params.append('limit', pageSize.toString())
 
@@ -74,7 +105,7 @@ export default function FreightRateList() {
     } finally {
       setLoading(false)
     }
-  }, [searchTerm, filterStatus, filterMode, currentPage, pageSize, t])
+  }, [searchTerm, filterStatus, filterSpaceStatus, currentPage, pageSize, t])
 
   useEffect(() => {
     fetchRates()
@@ -113,8 +144,7 @@ export default function FreightRateList() {
     switch (status) {
       case 'ACTIVE': return '#34C759'
       case 'EXPIRED': return '#FF3B30'
-      case 'DRAFT': return '#FF9500'
-      case 'SUSPENDED': return '#8E8E93'
+      case 'INACTIVE': return '#FF9500'
       default: return '#8E8E93'
     }
   }
@@ -123,25 +153,39 @@ export default function FreightRateList() {
     switch (status) {
       case 'ACTIVE': return t('freightRates.active')
       case 'EXPIRED': return t('freightRates.expired')
-      case 'DRAFT': return t('freightRates.draft')
-      case 'SUSPENDED': return t('freightRates.suspended')
+      case 'INACTIVE': return t('freightRates.inactive')
       default: return status
     }
   }
 
-  const getTransportModeText = (mode: string) => {
-    switch (mode) {
-      case 'SEA': return t('freightRates.sea')
-      case 'AIR': return t('freightRates.air')
-      case 'LAND': return t('freightRates.land')
-      case 'RAIL': return t('freightRates.rail')
-      default: return mode
+  const getSpaceStatusColor = (status: string) => {
+    switch (status) {
+      case 'AVAILABLE': return '#34C759'
+      case 'LIMITED': return '#FF9500'
+      case 'FULL': return '#FF3B30'
+      case 'SUSPENDED': return '#8E8E93'
+      default: return '#8E8E93'
+    }
+  }
+
+  const getSpaceStatusText = (status: string) => {
+    switch (status) {
+      case 'AVAILABLE': return t('freightRates.spaceAvailable')
+      case 'LIMITED': return t('freightRates.spaceLimited')
+      case 'FULL': return t('freightRates.spaceFull')
+      case 'SUSPENDED': return t('freightRates.spaceSuspended')
+      default: return status
     }
   }
 
   const formatPrice = (price: number | null, currency: string = 'USD') => {
     if (price === null || price === undefined) return '-'
-    return `${currency}:${price.toLocaleString()}`
+    return `${currency} ${price.toLocaleString()}`
+  }
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-'
+    return new Date(dateStr).toLocaleDateString(i18n.language === 'zh' ? 'zh-CN' : 'en-US')
   }
 
   // 生成分页按钮数组
@@ -323,13 +367,12 @@ export default function FreightRateList() {
             >
               <option value="">{t('freightRates.allStatus')}</option>
               <option value="ACTIVE">{t('freightRates.active')}</option>
-              <option value="DRAFT">{t('freightRates.draft')}</option>
+              <option value="INACTIVE">{t('freightRates.inactive')}</option>
               <option value="EXPIRED">{t('freightRates.expired')}</option>
-              <option value="SUSPENDED">{t('freightRates.suspended')}</option>
             </select>
             <select
-              value={filterMode}
-              onChange={(e) => setFilterMode(e.target.value)}
+              value={filterSpaceStatus}
+              onChange={(e) => setFilterSpaceStatus(e.target.value)}
               style={{
                 padding: '8px 12px',
                 borderRadius: 8,
@@ -339,17 +382,17 @@ export default function FreightRateList() {
                 cursor: 'pointer'
               }}
             >
-              <option value="">{t('freightRates.allModes')}</option>
-              <option value="SEA">{t('freightRates.sea')}</option>
-              <option value="AIR">{t('freightRates.air')}</option>
-              <option value="LAND">{t('freightRates.land')}</option>
-              <option value="RAIL">{t('freightRates.rail')}</option>
+              <option value="">{t('freightRates.allSpaceStatus')}</option>
+              <option value="AVAILABLE">{t('freightRates.spaceAvailable')}</option>
+              <option value="LIMITED">{t('freightRates.spaceLimited')}</option>
+              <option value="FULL">{t('freightRates.spaceFull')}</option>
+              <option value="SUSPENDED">{t('freightRates.spaceSuspended')}</option>
             </select>
           </div>
         )}
       </div>
 
-      {/* Table Container - 自适应高度 */}
+      {/* Table Container */}
       <div style={{
         background: '#fff',
         borderRadius: 14,
@@ -358,19 +401,20 @@ export default function FreightRateList() {
         flex: 1,
         minHeight: 0
       }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1200 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1400 }}>
           <thead>
             <tr style={{ background: '#F5F5F7' }}>
+              <th style={thStyle}>{t('freightRates.route')}</th>
               <th style={thStyle}>{t('freightRates.originPort')}</th>
               <th style={thStyle}>{t('freightRates.destinationPort')}</th>
               <th style={thStyle}>{t('freightRates.viaPort')}</th>
-              <th style={thStyle}>{t('freightRates.transportMode')}</th>
               <th style={{ ...thStyle, textAlign: 'center' }}>{t('freightRates.price20GP')}</th>
               <th style={{ ...thStyle, textAlign: 'center' }}>{t('freightRates.price40GP')}</th>
               <th style={{ ...thStyle, textAlign: 'center' }}>{t('freightRates.price40HQ')}</th>
               <th style={thStyle}>{t('freightRates.carrier')}</th>
               <th style={{ ...thStyle, textAlign: 'center' }}>{t('freightRates.transitTime')}</th>
               <th style={thStyle}>{t('freightRates.validity')}</th>
+              <th style={thStyle}>{t('freightRates.spaceStatus')}</th>
               <th style={thStyle}>{t('freightRates.status')}</th>
               <th style={{ ...thStyle, width: 100 }}>{t('common.actions')}</th>
             </tr>
@@ -378,13 +422,13 @@ export default function FreightRateList() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={12} style={{ padding: 60, textAlign: 'center' }}>
+                <td colSpan={13} style={{ padding: 60, textAlign: 'center' }}>
                   <div style={{ color: '#86868B', fontSize: 14 }}>{t('common.loading')}</div>
                 </td>
               </tr>
             ) : rates.length === 0 ? (
               <tr>
-                <td colSpan={12} style={{ padding: 60, textAlign: 'center' }}>
+                <td colSpan={13} style={{ padding: 60, textAlign: 'center' }}>
                   <Ship size={40} style={{ color: '#C7C7CC', marginBottom: 12 }} />
                   <div style={{ color: '#86868B', fontSize: 14 }}>{t('freightRates.noData')}</div>
                 </td>
@@ -401,9 +445,29 @@ export default function FreightRateList() {
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {rate.isRecommended && (
+                        <Star size={14} style={{ color: '#FF9500', fill: '#FF9500' }} />
+                      )}
+                      <span style={{ fontWeight: 500, color: '#1D1D1F' }}>
+                        {rate.route || '-'}
+                      </span>
+                    </div>
+                    {rate.routeCode && (
+                      <div style={{ fontSize: 12, color: '#86868B', marginTop: 2 }}>
+                        {rate.routeCode}
+                      </div>
+                    )}
+                  </td>
+                  <td style={tdStyle}>
                     <div style={{ fontWeight: 500, color: '#1D1D1F' }}>
                       {rate.originPort}
                     </div>
+                    {rate.portArea && (
+                      <div style={{ fontSize: 12, color: '#86868B' }}>
+                        {rate.portArea}
+                      </div>
+                    )}
                   </td>
                   <td style={tdStyle}>
                     <div style={{ fontWeight: 500, color: '#1D1D1F' }}>
@@ -415,23 +479,6 @@ export default function FreightRateList() {
                       {rate.viaPort || '-'}
                     </div>
                   </td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      padding: '4px 10px',
-                      borderRadius: 12,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      background: rate.transportMode === 'SEA' ? '#E8F5E9' :
-                        rate.transportMode === 'AIR' ? '#E3F2FD' :
-                          rate.transportMode === 'RAIL' ? '#FFF3E0' : '#F3E5F5',
-                      color: rate.transportMode === 'SEA' ? '#2E7D32' :
-                        rate.transportMode === 'AIR' ? '#1976D2' :
-                          rate.transportMode === 'RAIL' ? '#E65100' : '#7B1FA2'
-                    }}>
-                      {getTransportModeText(rate.transportMode)}
-                    </span>
-                  </td>
-                  {/* 价格按箱型分列显示 */}
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
                     <span style={{ fontSize: 13, color: rate.price20GP ? '#1D1D1F' : '#C7C7CC' }}>
                       {formatPrice(rate.price20GP, rate.currency)}
@@ -451,17 +498,48 @@ export default function FreightRateList() {
                     <div style={{ fontSize: 14, color: '#3A3A3C' }}>
                       {rate.carrier || '-'}
                     </div>
+                    {rate.vesselName && (
+                      <div style={{ fontSize: 12, color: '#86868B' }}>
+                        {rate.vesselName}
+                      </div>
+                    )}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: 14, color: rate.transitTime ? '#3A3A3C' : '#C7C7CC' }}>
-                      {rate.transitTime ? `${rate.transitTime} ${t('freightRates.days')}` : '-'}
+                      {rate.transitTime ? `${rate.transitTime}d` : '-'}
+                    </div>
+                    {rate.schedule && (
+                      <div style={{ fontSize: 11, color: '#86868B' }}>
+                        {rate.schedule}
+                      </div>
+                    )}
+                  </td>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#3A3A3C' }}>
+                      <Calendar size={12} />
+                      {formatDate(rate.validFrom)} - {formatDate(rate.validTo)}
                     </div>
                   </td>
                   <td style={tdStyle}>
-                    <div style={{ fontSize: 13, color: '#3A3A3C' }}>
-                      {new Date(rate.validFrom).toLocaleDateString(i18n.language === 'zh' ? 'zh-CN' : 'en-US')} -
-                      {new Date(rate.validTo).toLocaleDateString(i18n.language === 'zh' ? 'zh-CN' : 'en-US')}
-                    </div>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 10px',
+                      borderRadius: 12,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      background: `${getSpaceStatusColor(rate.spaceStatus)}15`,
+                      color: getSpaceStatusColor(rate.spaceStatus)
+                    }}>
+                      <span style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: getSpaceStatusColor(rate.spaceStatus)
+                      }} />
+                      {getSpaceStatusText(rate.spaceStatus)}
+                    </span>
                   </td>
                   <td style={tdStyle}>
                     <span style={{
@@ -525,7 +603,7 @@ export default function FreightRateList() {
         </table>
       </div>
 
-      {/* Pagination - 改进版分页器 */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div style={{
           display: 'flex',

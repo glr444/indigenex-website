@@ -16,6 +16,8 @@ const getFreightRates = async (req, res) => {
       destinationPort,
       carrier,
       status = 'ACTIVE',
+      spaceStatus,
+      isRecommended,
       search
     } = req.query;
 
@@ -41,12 +43,22 @@ const getFreightRates = async (req, res) => {
       where.status = status;
     }
 
+    if (spaceStatus) {
+      where.spaceStatus = spaceStatus;
+    }
+
+    if (isRecommended !== undefined) {
+      where.isRecommended = isRecommended === 'true';
+    }
+
     if (search) {
       where.OR = [
         { originPort: { contains: search } },
         { destinationPort: { contains: search } },
         { carrier: { contains: search } },
-        { route: { contains: search } }
+        { route: { contains: search } },
+        { routeCode: { contains: search } },
+        { bookingAgent: { contains: search } }
       ];
     }
 
@@ -120,74 +132,92 @@ const getFreightRateById = async (req, res) => {
  */
 const createFreightRate = async (req, res) => {
   try {
-    const {
-      route,
-      originPort,
-      originPortEn,
-      destinationPort,
-      destinationPortEn,
-      viaPort,
-      viaPortEn,
-      transportMode = 'SEA',
-      price20GP,
-      price40GP,
-      price40HQ,
-      price45HQ,
-      priceLCL,
-      currency = 'USD',
-      surcharges,
-      carrier,
-      carrierLogo,
-      transitTime,
-      schedule,
-      spaceStatus,
-      validFrom,
-      validTo,
-      cutOffDate,
-      estimatedDeparture,
-      remarks,
-      status = 'ACTIVE'
-    } = req.body;
+    const data = req.body;
 
     // 验证必填字段
-    if (!originPort || !destinationPort || !validFrom || !validTo) {
+    if (!data.originPort || !data.destinationPort || !data.validFrom || !data.validTo) {
       return res.status(400).json({
         success: false,
-        message: '请填写必填字段：起运港、目的港、生效日期、到期日期'
+        message: '请填写必填字段：起运港、目的港、有效期开始、有效期结束'
       });
     }
 
-    const rate = await prisma.freightRate.create({
-      data: {
-        route,
-        originPort,
-        originPortEn,
-        destinationPort,
-        destinationPortEn,
-        viaPort,
-        viaPortEn,
-        transportMode,
-        price20GP: price20GP ? parseFloat(price20GP) : null,
-        price40GP: price40GP ? parseFloat(price40GP) : null,
-        price40HQ: price40HQ ? parseFloat(price40HQ) : null,
-        price45HQ: price45HQ ? parseFloat(price45HQ) : null,
-        priceLCL: priceLCL ? parseFloat(priceLCL) : null,
-        currency,
-        surcharges: surcharges ? JSON.stringify(surcharges) : null,
-        carrier,
-        carrierLogo,
-        transitTime: transitTime ? parseInt(transitTime) : null,
-        schedule,
-        spaceStatus: spaceStatus || 'AVAILABLE',
-        validFrom: new Date(validFrom),
-        validTo: new Date(validTo),
-        cutOffDate: cutOffDate ? new Date(cutOffDate) : null,
-        estimatedDeparture: estimatedDeparture ? new Date(estimatedDeparture) : null,
-        remarks,
-        status,
-        createdBy: req.user.id
-      }
-    });
+    // 构建创建数据
+    const createData = {
+      // 基本信息
+      route: data.route || null,
+      originPort: data.originPort,
+      originPortEn: data.originPortEn || null,
+      destinationPort: data.destinationPort,
+      destinationPortEn: data.destinationPortEn || null,
+      viaPort: data.viaPort || null,
+      viaPortEn: data.viaPortEn || null,
+      portArea: data.portArea || null,
+
+      // 有效期
+      validFrom: new Date(data.validFrom),
+      validTo: new Date(data.validTo),
+      validityType: data.validityType || 'LONG',
+      isRecommended: data.isRecommended || false,
+
+      // 船公司
+      carrier: data.carrier || null,
+      carrierLogo: data.carrierLogo || null,
+
+      // 运价
+      price20GP: data.price20GP ? parseFloat(data.price20GP) : null,
+      price40GP: data.price40GP ? parseFloat(data.price40GP) : null,
+      price40HQ: data.price40HQ ? parseFloat(data.price40HQ) : null,
+      price45HQ: data.price45HQ ? parseFloat(data.price45HQ) : null,
+      currency: data.currency || 'USD',
+
+      // 成本
+      cost20GP: data.cost20GP ? parseFloat(data.cost20GP) : null,
+      cost40GP: data.cost40GP ? parseFloat(data.cost40GP) : null,
+      cost40HQ: data.cost40HQ ? parseFloat(data.cost40HQ) : null,
+      cost45HQ: data.cost45HQ ? parseFloat(data.cost45HQ) : null,
+      isAllIn: data.isAllIn || false,
+
+      // 航程
+      transitTime: data.transitTime ? parseInt(data.transitTime) : null,
+      schedule: data.schedule || null,
+      routeCode: data.routeCode || null,
+
+      // 船期
+      vesselName: data.vesselName || null,
+      voyage: data.voyage || null,
+      sailingDate: data.sailingDate ? new Date(data.sailingDate) : null,
+      estimatedDeparture: data.estimatedDeparture ? new Date(data.estimatedDeparture) : null,
+
+      // 订舱
+      bookingAgent: data.bookingAgent || null,
+      bookingLink: data.bookingLink || null,
+      spaceStatus: data.spaceStatus || 'AVAILABLE',
+
+      // 文件截止
+      docCutoffDay: data.docCutoffDay || null,
+      docCutoffTime: data.docCutoffTime || null,
+
+      // 提单
+      billOfLadingType: data.billOfLadingType || null,
+      shippingTerms: data.shippingTerms || null,
+      deliveryGuide: data.deliveryGuide || null,
+
+      // 附加费
+      surcharges: data.surcharges ? JSON.stringify(data.surcharges) : null,
+      weightLimit: data.weightLimit || null,
+      remarks: data.remarks || null,
+
+      // 其他
+      priceTrend: data.priceTrend || null,
+      contactInfo: data.contactInfo || null,
+      receiptGuide: data.receiptGuide || null,
+
+      status: data.status || 'ACTIVE',
+      createdBy: req.user.id
+    };
+
+    const rate = await prisma.freightRate.create({ data: createData });
 
     res.status(201).json({
       success: true,
@@ -210,34 +240,7 @@ const createFreightRate = async (req, res) => {
 const updateFreightRate = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      route,
-      originPort,
-      originPortEn,
-      destinationPort,
-      destinationPortEn,
-      viaPort,
-      viaPortEn,
-      transportMode,
-      price20GP,
-      price40GP,
-      price40HQ,
-      price45HQ,
-      priceLCL,
-      currency,
-      surcharges,
-      carrier,
-      carrierLogo,
-      transitTime,
-      schedule,
-      spaceStatus,
-      validFrom,
-      validTo,
-      cutOffDate,
-      estimatedDeparture,
-      remarks,
-      status
-    } = req.body;
+    const data = req.body;
 
     // 检查运价是否存在
     const existingRate = await prisma.freightRate.findUnique({
@@ -251,36 +254,82 @@ const updateFreightRate = async (req, res) => {
       });
     }
 
+    // 构建更新数据
+    const updateData = {};
+
+    // 基本信息
+    if (data.route !== undefined) updateData.route = data.route;
+    if (data.originPort !== undefined) updateData.originPort = data.originPort;
+    if (data.originPortEn !== undefined) updateData.originPortEn = data.originPortEn;
+    if (data.destinationPort !== undefined) updateData.destinationPort = data.destinationPort;
+    if (data.destinationPortEn !== undefined) updateData.destinationPortEn = data.destinationPortEn;
+    if (data.viaPort !== undefined) updateData.viaPort = data.viaPort;
+    if (data.viaPortEn !== undefined) updateData.viaPortEn = data.viaPortEn;
+    if (data.portArea !== undefined) updateData.portArea = data.portArea;
+
+    // 有效期
+    if (data.validFrom !== undefined) updateData.validFrom = new Date(data.validFrom);
+    if (data.validTo !== undefined) updateData.validTo = new Date(data.validTo);
+    if (data.validityType !== undefined) updateData.validityType = data.validityType;
+    if (data.isRecommended !== undefined) updateData.isRecommended = data.isRecommended;
+
+    // 船公司
+    if (data.carrier !== undefined) updateData.carrier = data.carrier;
+    if (data.carrierLogo !== undefined) updateData.carrierLogo = data.carrierLogo;
+
+    // 运价
+    if (data.price20GP !== undefined) updateData.price20GP = data.price20GP ? parseFloat(data.price20GP) : null;
+    if (data.price40GP !== undefined) updateData.price40GP = data.price40GP ? parseFloat(data.price40GP) : null;
+    if (data.price40HQ !== undefined) updateData.price40HQ = data.price40HQ ? parseFloat(data.price40HQ) : null;
+    if (data.price45HQ !== undefined) updateData.price45HQ = data.price45HQ ? parseFloat(data.price45HQ) : null;
+    if (data.currency !== undefined) updateData.currency = data.currency;
+
+    // 成本
+    if (data.cost20GP !== undefined) updateData.cost20GP = data.cost20GP ? parseFloat(data.cost20GP) : null;
+    if (data.cost40GP !== undefined) updateData.cost40GP = data.cost40GP ? parseFloat(data.cost40GP) : null;
+    if (data.cost40HQ !== undefined) updateData.cost40HQ = data.cost40HQ ? parseFloat(data.cost40HQ) : null;
+    if (data.cost45HQ !== undefined) updateData.cost45HQ = data.cost45HQ ? parseFloat(data.cost45HQ) : null;
+    if (data.isAllIn !== undefined) updateData.isAllIn = data.isAllIn;
+
+    // 航程
+    if (data.transitTime !== undefined) updateData.transitTime = data.transitTime ? parseInt(data.transitTime) : null;
+    if (data.schedule !== undefined) updateData.schedule = data.schedule;
+    if (data.routeCode !== undefined) updateData.routeCode = data.routeCode;
+
+    // 船期
+    if (data.vesselName !== undefined) updateData.vesselName = data.vesselName;
+    if (data.voyage !== undefined) updateData.voyage = data.voyage;
+    if (data.sailingDate !== undefined) updateData.sailingDate = data.sailingDate ? new Date(data.sailingDate) : null;
+    if (data.estimatedDeparture !== undefined) updateData.estimatedDeparture = data.estimatedDeparture ? new Date(data.estimatedDeparture) : null;
+
+    // 订舱
+    if (data.bookingAgent !== undefined) updateData.bookingAgent = data.bookingAgent;
+    if (data.bookingLink !== undefined) updateData.bookingLink = data.bookingLink;
+    if (data.spaceStatus !== undefined) updateData.spaceStatus = data.spaceStatus;
+
+    // 文件截止
+    if (data.docCutoffDay !== undefined) updateData.docCutoffDay = data.docCutoffDay;
+    if (data.docCutoffTime !== undefined) updateData.docCutoffTime = data.docCutoffTime;
+
+    // 提单
+    if (data.billOfLadingType !== undefined) updateData.billOfLadingType = data.billOfLadingType;
+    if (data.shippingTerms !== undefined) updateData.shippingTerms = data.shippingTerms;
+    if (data.deliveryGuide !== undefined) updateData.deliveryGuide = data.deliveryGuide;
+
+    // 附加费
+    if (data.surcharges !== undefined) updateData.surcharges = data.surcharges ? JSON.stringify(data.surcharges) : null;
+    if (data.weightLimit !== undefined) updateData.weightLimit = data.weightLimit;
+    if (data.remarks !== undefined) updateData.remarks = data.remarks;
+
+    // 其他
+    if (data.priceTrend !== undefined) updateData.priceTrend = data.priceTrend;
+    if (data.contactInfo !== undefined) updateData.contactInfo = data.contactInfo;
+    if (data.receiptGuide !== undefined) updateData.receiptGuide = data.receiptGuide;
+    if (data.status !== undefined) updateData.status = data.status;
+
     const rate = await prisma.freightRate.update({
       where: { id },
-      data: {
-        route: route !== undefined ? route : undefined,
-        originPort: originPort !== undefined ? originPort : undefined,
-        originPortEn: originPortEn !== undefined ? originPortEn : undefined,
-        destinationPort: destinationPort !== undefined ? destinationPort : undefined,
-        destinationPortEn: destinationPortEn !== undefined ? destinationPortEn : undefined,
-        viaPort: viaPort !== undefined ? viaPort : undefined,
-        viaPortEn: viaPortEn !== undefined ? viaPortEn : undefined,
-        transportMode: transportMode !== undefined ? transportMode : undefined,
-        price20GP: price20GP !== undefined ? (price20GP ? parseFloat(price20GP) : null) : undefined,
-        price40GP: price40GP !== undefined ? (price40GP ? parseFloat(price40GP) : null) : undefined,
-        price40HQ: price40HQ !== undefined ? (price40HQ ? parseFloat(price40HQ) : null) : undefined,
-        price45HQ: price45HQ !== undefined ? (price45HQ ? parseFloat(price45HQ) : null) : undefined,
-        priceLCL: priceLCL !== undefined ? (priceLCL ? parseFloat(priceLCL) : null) : undefined,
-        currency: currency !== undefined ? currency : undefined,
-        surcharges: surcharges !== undefined ? (surcharges ? JSON.stringify(surcharges) : null) : undefined,
-        carrier: carrier !== undefined ? carrier : undefined,
-        carrierLogo: carrierLogo !== undefined ? carrierLogo : undefined,
-        transitTime: transitTime !== undefined ? (transitTime ? parseInt(transitTime) : null) : undefined,
-        schedule: schedule !== undefined ? schedule : undefined,
-        spaceStatus: spaceStatus !== undefined ? spaceStatus : undefined,
-        validFrom: validFrom !== undefined ? new Date(validFrom) : undefined,
-        validTo: validTo !== undefined ? new Date(validTo) : undefined,
-        cutOffDate: cutOffDate !== undefined ? (cutOffDate ? new Date(cutOffDate) : null) : undefined,
-        estimatedDeparture: estimatedDeparture !== undefined ? (estimatedDeparture ? new Date(estimatedDeparture) : null) : undefined,
-        remarks: remarks !== undefined ? remarks : undefined,
-        status: status !== undefined ? status : undefined
-      }
+      data: updateData
     });
 
     res.json({
@@ -305,7 +354,6 @@ const deleteFreightRate = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 检查运价是否存在
     const existingRate = await prisma.freightRate.findUnique({
       where: { id }
     });
@@ -317,9 +365,7 @@ const deleteFreightRate = async (req, res) => {
       });
     }
 
-    await prisma.freightRate.delete({
-      where: { id }
-    });
+    await prisma.freightRate.delete({ where: { id } });
 
     res.json({
       success: true,
@@ -370,7 +416,6 @@ const importFreightRates = async (req, res) => {
     for (let i = 0; i < parsedData.length; i++) {
       const row = parsedData[i];
 
-      // 验证必填字段
       if (!row.originPort || !row.destinationPort) {
         errors.push({ row: i + 1, message: '起运港和目的港为必填项' });
         continue;
@@ -381,22 +426,61 @@ const importFreightRates = async (req, res) => {
           data: {
             route: row.route || null,
             originPort: row.originPort,
+            originPortEn: row.originPortEn || null,
             destinationPort: row.destinationPort,
+            destinationPortEn: row.destinationPortEn || null,
             viaPort: row.viaPort || null,
-            transportMode: row.transportMode || 'SEA',
+            viaPortEn: row.viaPortEn || null,
+            portArea: row.portArea || null,
+
+            validFrom: row.validFrom ? new Date(row.validFrom) : new Date(),
+            validTo: row.validTo ? new Date(row.validTo) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            validityType: row.validityType || 'LONG',
+            isRecommended: row.isRecommended || false,
+
+            carrier: row.carrier || null,
+            carrierLogo: row.carrierLogo || null,
+
             price20GP: row.price20GP,
             price40GP: row.price40GP,
             price40HQ: row.price40HQ,
             price45HQ: row.price45HQ,
-            priceLCL: row.priceLCL,
             currency: row.currency || 'USD',
-            surcharges: row.surcharges ? JSON.stringify(row.surcharges) : null,
-            carrier: row.carrier || null,
+
+            cost20GP: row.cost20GP,
+            cost40GP: row.cost40GP,
+            cost40HQ: row.cost40HQ,
+            cost45HQ: row.cost45HQ,
+            isAllIn: row.isAllIn || false,
+
             transitTime: row.transitTime,
             schedule: row.schedule || null,
-            validFrom: row.validFrom ? new Date(row.validFrom) : new Date(),
-            validTo: row.validTo ? new Date(row.validTo) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            routeCode: row.routeCode || null,
+
+            vesselName: row.vesselName || null,
+            voyage: row.voyage || null,
+            sailingDate: row.sailingDate ? new Date(row.sailingDate) : null,
+            estimatedDeparture: row.estimatedDeparture ? new Date(row.estimatedDeparture) : null,
+
+            bookingAgent: row.bookingAgent || null,
+            bookingLink: row.bookingLink || null,
+            spaceStatus: row.spaceStatus || 'AVAILABLE',
+
+            docCutoffDay: row.docCutoffDay || null,
+            docCutoffTime: row.docCutoffTime || null,
+
+            billOfLadingType: row.billOfLadingType || null,
+            shippingTerms: row.shippingTerms || null,
+            deliveryGuide: row.deliveryGuide || null,
+
+            surcharges: row.surcharges ? JSON.stringify(row.surcharges) : null,
+            weightLimit: row.weightLimit || null,
             remarks: row.remarks || null,
+
+            priceTrend: row.priceTrend || null,
+            contactInfo: row.contactInfo || null,
+            receiptGuide: row.receiptGuide || null,
+
             status: 'ACTIVE',
             importBatchId,
             createdBy: req.user.id
@@ -416,7 +500,7 @@ const importFreightRates = async (req, res) => {
         total: parsedData.length,
         success: createdRates.length,
         failed: errors.length,
-        errors: errors.slice(0, 10) // 只返回前10个错误
+        errors: errors.slice(0, 10)
       }
     });
   } catch (error) {
@@ -452,9 +536,7 @@ const getPublicFreightRates = async (req, res) => {
     // 构建查询条件 - 只查询有效的运价
     const where = {
       status: 'ACTIVE',
-      validTo: {
-        gte: new Date()
-      }
+      validTo: { gte: new Date() }
     };
 
     // 全局搜索
@@ -471,7 +553,7 @@ const getPublicFreightRates = async (req, res) => {
       ];
     }
 
-    // 处理港口代码查询 - 先查找港口名称
+    // 处理港口代码查询
     let originPortNames = [];
     let destPortNames = [];
 
@@ -535,35 +617,7 @@ const getPublicFreightRates = async (req, res) => {
       where,
       skip,
       take,
-      orderBy: { validFrom: 'desc' },
-      select: {
-        id: true,
-        route: true,
-        originPort: true,
-        originPortEn: true,
-        destinationPort: true,
-        destinationPortEn: true,
-        viaPort: true,
-        viaPortEn: true,
-        transportMode: true,
-        price20GP: true,
-        price40GP: true,
-        price40HQ: true,
-        price45HQ: true,
-        priceLCL: true,
-        currency: true,
-        surcharges: true,
-        carrier: true,
-        carrierLogo: true,
-        transitTime: true,
-        schedule: true,
-        spaceStatus: true,
-        validFrom: true,
-        validTo: true,
-        cutOffDate: true,
-        estimatedDeparture: true,
-        remarks: true
-      }
+      orderBy: { validFrom: 'desc' }
     });
 
     res.json({

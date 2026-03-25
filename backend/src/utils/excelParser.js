@@ -39,42 +39,141 @@ function parseExcel(buffer) {
 
 /**
  * 将运价Excel数据转换为标准格式
- * 期望的列名：航线, 起运港, 目的港, 船公司, 20GP, 40GP, 40HQ, 币种, 生效日期, 到期日期
+ * 支持字段：航线, 航线代码, 起运港, 起运港英文, 目的港, 目的港英文, 中转港, 港区, 船公司,
+ * 20GP运价, 40GP运价, 40HQ运价, 45HQ运价, 币种, 20GP成本, 40GP成本, 40HQ成本, 45HQ成本, ALL IN,
+ * 航程, 船期, 船名, 航次, 开航日, ETD, 订舱代理, 订舱链接, 舱位状态,
+ * 截文件天, 截文件时间, 提单类型, 运输条款, 限重, 有效期开始, 有效期结束, 有效期类型,
+ * 运价趋势, 联系方式, 是否推荐, 附加费, 备注
  *
  * @param {Array} rows - Excel解析后的行数据
  * @returns {Array} - 标准化的运价数据
  */
 function parseFreightRateExcel(rows) {
   const fieldMappings = {
-    // 中文列名映射
+    // 基本信息
     '航线': 'route',
+    'Route': 'route',
+    '航线代码': 'routeCode',
+    'Route Code': 'routeCode',
+
+    // 港口
     '起运港': 'originPort',
     'POL': 'originPort',
+    'Origin Port': 'originPort',
     '装货港': 'originPort',
+    '起运港英文': 'originPortEn',
+    'Origin Port EN': 'originPortEn',
     '目的港': 'destinationPort',
     'POD': 'destinationPort',
+    'Destination Port': 'destinationPort',
     '卸货港': 'destinationPort',
+    '目的港英文': 'destinationPortEn',
+    'Destination Port EN': 'destinationPortEn',
     '中转港': 'viaPort',
+    'Via': 'viaPort',
+    '中转港英文': 'viaPortEn',
+    'Via EN': 'viaPortEn',
+    '港区': 'portArea',
+    'Port Area': 'portArea',
+
+    // 船公司
     '船公司': 'carrier',
+    'Carrier': 'carrier',
     '承运人': 'carrier',
+
+    // 运价
     '20GP': 'price20GP',
+    '20GP运价': 'price20GP',
+    '20GP Price': 'price20GP',
     '40GP': 'price40GP',
+    '40GP运价': 'price40GP',
+    '40GP Price': 'price40GP',
     '40HQ': 'price40HQ',
+    '40HQ运价': 'price40HQ',
+    '40HQ Price': 'price40HQ',
     '45HQ': 'price45HQ',
-    '拼箱': 'priceLCL',
-    'LCL': 'priceLCL',
+    '45HQ运价': 'price45HQ',
+    '45HQ Price': 'price45HQ',
     '币种': 'currency',
+    'Currency': 'currency',
     '货币': 'currency',
-    '生效日期': 'validFrom',
-    '生效日': 'validFrom',
-    '有效期从': 'validFrom',
-    '到期日期': 'validTo',
-    '到期日': 'validTo',
-    '有效期至': 'validTo',
-    '船期': 'schedule',
-    '运输时间': 'transitTime',
+
+    // 成本
+    '20GP成本': 'cost20GP',
+    '20GP Cost': 'cost20GP',
+    '40GP成本': 'cost40GP',
+    '40GP Cost': 'cost40GP',
+    '40HQ成本': 'cost40HQ',
+    '40HQ Cost': 'cost40HQ',
+    '45HQ成本': 'cost45HQ',
+    '45HQ Cost': 'cost45HQ',
+    'ALL IN': 'isAllIn',
+    'Is All In': 'isAllIn',
+    '是否ALL IN': 'isAllIn',
+
+    // 航程
     '航程': 'transitTime',
+    'Transit Time': 'transitTime',
+    '运输时间': 'transitTime',
+    'T/T': 'transitTime',
+    '船期': 'schedule',
+    'Schedule': 'schedule',
+    '船名': 'vesselName',
+    'Vessel': 'vesselName',
+    '航次': 'voyage',
+    'Voyage': 'voyage',
+    '开航日': 'sailingDate',
+    'Sailing Date': 'sailingDate',
+    'ETD': 'estimatedDeparture',
+    '预计开船': 'estimatedDeparture',
+
+    // 订舱
+    '订舱代理': 'bookingAgent',
+    'Booking Agent': 'bookingAgent',
+    '订舱链接': 'bookingLink',
+    'Booking Link': 'bookingLink',
+    '舱位状态': 'spaceStatus',
+    'Space Status': 'spaceStatus',
+
+    // 文件截止
+    '截文件天': 'docCutoffDay',
+    'Doc Cutoff Day': 'docCutoffDay',
+    '截文件时间': 'docCutoffTime',
+    'Doc Cutoff Time': 'docCutoffTime',
+    'SI Cutoff': 'docCutoffTime',
+
+    // 提单
+    '提单类型': 'billOfLadingType',
+    'B/L Type': 'billOfLadingType',
+    '运输条款': 'shippingTerms',
+    'Shipping Terms': 'shippingTerms',
+    'Terms': 'shippingTerms',
+    '限重': 'weightLimit',
+    'Weight Limit': 'weightLimit',
+
+    // 有效期
+    '有效期开始': 'validFrom',
+    'Valid From': 'validFrom',
+    '生效日期': 'validFrom',
+    '有效期结束': 'validTo',
+    'Valid To': 'validTo',
+    '到期日期': 'validTo',
+    '有效期类型': 'validityType',
+    'Validity Type': 'validityType',
+
+    // 其他
+    '运价趋势': 'priceTrend',
+    'Price Trend': 'priceTrend',
+    'Trend': 'priceTrend',
+    '联系方式': 'contactInfo',
+    'Contact': 'contactInfo',
+    '是否推荐': 'isRecommended',
+    'Recommended': 'isRecommended',
+    '附加费': 'surcharges',
+    'Surcharges': 'surcharges',
     '备注': 'remarks',
+    'Remarks': 'remarks',
+    'Note': 'remarks'
   };
 
   return rows.map(row => {
@@ -88,20 +187,38 @@ function parseFreightRateExcel(rows) {
         let normalizedValue = value;
 
         // 处理价格字段
-        if (['price20GP', 'price40GP', 'price40HQ', 'price45HQ', 'priceLCL'].includes(standardField)) {
+        if (['price20GP', 'price40GP', 'price40HQ', 'price45HQ', 'cost20GP', 'cost40GP', 'cost40HQ', 'cost45HQ'].includes(standardField)) {
           normalizedValue = parseFloat(value) || null;
         }
 
         // 处理日期字段
-        if (['validFrom', 'validTo'].includes(standardField) && value) {
-          // 尝试解析日期（支持多种格式）
+        if (['validFrom', 'validTo', 'sailingDate', 'estimatedDeparture'].includes(standardField) && value) {
           const dateValue = parseDate(value);
           normalizedValue = dateValue ? dateValue.toISOString() : value;
         }
 
-        // 处理运输时间
+        // 处理航程
         if (standardField === 'transitTime') {
           normalizedValue = parseInt(value) || null;
+        }
+
+        // 处理布尔值
+        if (['isRecommended', 'isAllIn'].includes(standardField)) {
+          normalizedValue = value === true || value === 'true' || value === '是' || value === 'YES' || value === 'Y' || value === '1';
+        }
+
+        // 处理附加费（简单解析，可以扩展）
+        if (standardField === 'surcharges' && value) {
+          try {
+            if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
+              normalizedValue = JSON.parse(value);
+            } else if (value) {
+              // 简单文本格式，存储为字符串
+              normalizedValue = [{ name: '附加费', amount: parseFloat(value) || 0, unit: 'per_container' }];
+            }
+          } catch (e) {
+            normalizedValue = null;
+          }
         }
 
         standardRow[standardField] = normalizedValue;

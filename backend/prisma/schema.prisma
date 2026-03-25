@@ -116,57 +116,93 @@ model Subscription {
   @@index([memberId])
 }
 
-// 运价模型
+// 运价模型 - SEA FCL only
 model FreightRate {
-  id               String   @id @default(uuid())
-  route            String? // 航线
-  originPort       String // 起运港 POL (中文)
-  originPortEn     String? // 起运港英文
-  destinationPort  String // 目的港 POD (中文)
+  id    String @id @default(uuid())
+  route String? // 航线名称
+
+  // 港口信息
+  originPort        String // 起运港
+  originPortEn      String? // 起运港英文
+  destinationPort   String // 目的港
   destinationPortEn String? // 目的港英文
-  viaPort          String? // 中转港 (中文)
-  viaPortEn        String? // 中转港英文
-  transportMode    String   @default("SEA")
+  viaPort           String? // 中转港
+  viaPortEn         String? // 中转港英文
+  portArea          String? // 港区
 
-  // 价格字段
-  price20GP Float?
-  price40GP Float?
-  price40HQ Float?
-  price45HQ Float?
-  priceLCL  Float? // 拼箱价格
-  currency  String @default("USD")
+  // 有效期
+  validFrom     DateTime // 有效期开始
+  validTo       DateTime // 有效期结束
+  validityType  String   @default("LONG") // LONG-长期, SHORT-短期
+  isRecommended Boolean  @default(false) // 是否推荐
 
-  // 附加费 JSON字符串格式
-  surcharges String?
-
+  // 船公司信息
   carrier     String? // 船公司
-  carrierLogo String? // 船公司Logo URL
-  transitTime Int?    // 运输时间（天）
-  schedule    String? // 船期
+  carrierLogo String? // 船公司Logo
 
-  // 舱位状态
-  spaceStatus String? @default("AVAILABLE") // AVAILABLE-充足, LIMITED-紧张, FULL-爆舱
+  // 运价 - FCL整箱
+  price20GP Float? // 20'GP运价
+  price40GP Float? // 40'GP运价
+  price40HQ Float? // 40'HQ运价
+  price45HQ Float? // 45'HQ运价
+  currency  String @default("USD") // 币种
 
-  validFrom DateTime // 生效日期
-  validTo   DateTime // 到期日期
+  // 成本价
+  cost20GP Float? // 20'GP成本
+  cost40GP Float? // 40'GP成本
+  cost40HQ Float? // 40'HQ成本
+  cost45HQ Float? // 45'HQ成本
+  isAllIn  Boolean @default(false) // 是否ALL IN价
 
-  // 截关和开船时间
-  cutOffDate          DateTime? // 截关日期
-  estimatedDeparture  DateTime? // ETD 预计开船时间
+  // 航程信息
+  transitTime Int?    // 航程(天)
+  schedule    String? // 船期 (周几，如 "周一/三/五")
+  routeCode   String? // 航线代码
 
-  remarks String? // 备注
-  status  String  @default("ACTIVE")
+  // 船期信息
+  vesselName String? // 船名
+  voyage     String? // 航次
+  sailingDate DateTime? // 开航日
+  estimatedDeparture DateTime? // ETD
 
-  importBatchId String? // 批量导入批次ID
-  createdBy     String  // 创建人（后台用户ID）
+  // 订舱信息
+  bookingAgent String? // 订舱代理
+  bookingLink  String? // 订舱链接
+  spaceStatus  String  @default("AVAILABLE") // AVAILABLE-充足, LIMITED-紧张, FULL-爆舱, SUSPENDED-停航
+
+  // 文件截止信息
+  docCutoffDay  String? // 截文件天 (周几)
+  docCutoffTime String? // 截文件时间 (如 "12:00")
+
+  // 提单信息
+  billOfLadingType String? // 提单类型 (正本/电放/Sea Waybill)
+  shippingTerms    String? // 运输条款 (CY-CY, CFS-CFS等)
+  deliveryGuide    String? // 放货指引
+
+  // 附加费和说明
+  surcharges String? // 附加费说明 (JSON)
+  weightLimit String? // 限重说明
+  remarks    String? // 备注
+
+  // 其他信息
+  priceTrend String? // 运价趋势 (UP-上涨, DOWN-下跌, STABLE-平稳)
+  contactInfo String? // 联系方式
+  receiptGuide String? // 收货指引
+
+  // 状态
+  status String @default("ACTIVE") // ACTIVE-有效, INACTIVE-无效, EXPIRED-过期
+
+  importBatchId String?
+  createdBy     String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([originPort, destinationPort])
-  @@index([originPortEn, destinationPortEn])
   @@index([validFrom, validTo])
   @@index([status])
   @@index([carrier])
+  @@index([isRecommended])
+  @@index([spaceStatus])
 }
 
 // 订单查询日志
