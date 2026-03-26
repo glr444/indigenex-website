@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import '../globals.css'
 import Navigation from '../components/Navigation'
-import Footer from '../components/Footer'
 
 export const metadata: Metadata = {
   title: 'Carggo GM | Global Freight & Logistics',
@@ -17,7 +16,6 @@ export default function MainLayout({
     <>
       <Navigation />
       <main>{children}</main>
-      <Footer />
     </>
   )
 }
