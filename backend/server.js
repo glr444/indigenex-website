@@ -10,6 +10,7 @@ const newsRoutes = require('./src/routes/news');
 const contactRoutes = require('./src/routes/contact');
 const memberRoutes = require('./src/routes/member');
 const freightRateRoutes = require('./src/routes/freightRates');
+const memberFreightRateRoutes = require('./src/routes/memberFreightRates');
 const adminMemberRoutes = require('./src/routes/adminMembers');
 const adminPortRoutes = require('./src/routes/adminPorts');
 const orderRoutes = require('./src/routes/orders');
@@ -69,8 +70,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/member', memberRoutes);
-app.use('/api/freight-rates', freightRateRoutes);  // 公开运价查询
-app.use('/api/admin/freight-rates', freightRateRoutes);  // 后台管理
+app.use('/api/freight-rates', memberFreightRateRoutes);  // 会员运价查询（需要会员认证）
+app.use('/api/admin/freight-rates', freightRateRoutes);  // 后台管理（需要管理员认证）
 app.use('/api/admin/members', adminMemberRoutes);
 app.use('/api/admin/ports', adminPortRoutes);
 app.use('/api/admin/routes', routeRoutes);
