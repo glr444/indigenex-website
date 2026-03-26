@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://indigenex.com', 'https://admin.indigenex.com']
+    ? true  // 允许任何来源（使用服务器IP访问）
     : ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
