@@ -4,6 +4,9 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const MEMBER_JWT_SECRET = process.env.MEMBER_JWT_SECRET || process.env.JWT_SECRET || 'fallback-secret';
 
+console.log('[MemberAuth Middleware] JWT Secret loaded:', MEMBER_JWT_SECRET.substring(0, 20) + '...');
+console.log('[MemberAuth Middleware] NODE_ENV:', process.env.NODE_ENV);
+
 /**
  * 会员JWT认证中间件
  * 验证请求中的 Bearer Token

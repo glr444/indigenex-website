@@ -9,6 +9,9 @@ const prisma = new PrismaClient();
 const MEMBER_JWT_SECRET = process.env.MEMBER_JWT_SECRET || process.env.JWT_SECRET || 'fallback-secret';
 const MEMBER_JWT_EXPIRES_IN = process.env.MEMBER_JWT_EXPIRES_IN || '7d';
 
+console.log('[MemberAuth] JWT Secret loaded:', MEMBER_JWT_SECRET.substring(0, 20) + '...');
+console.log('[MemberAuth] NODE_ENV:', process.env.NODE_ENV);
+
 // 生成随机密码
 function generateRandomPassword(length = 10) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
