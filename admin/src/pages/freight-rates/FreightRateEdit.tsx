@@ -24,10 +24,11 @@ import Autocomplete from '../../components/Autocomplete'
 interface Port {
   id: string
   code: string
-  name: string
   nameEn: string
-  country: string
-  city: string
+  nameCn: string
+  countryCode?: string
+  countryName?: string
+  region?: string
   isActive?: boolean
 }
 
@@ -118,8 +119,8 @@ const PortSelect = memo(({ ports, label, value, onChange, required, loading }: {
     loading={loading}
     placeholder="Select port"
     getOptionValue={p => p.code}
-    getOptionLabel={p => `${p.code} - ${p.name} (${p.nameEn})`}
-    getSearchText={p => `${p.code} ${p.name} ${p.nameEn} ${p.city} ${p.country}`}
+    getOptionLabel={p => `${p.code} - ${p.nameEn} (${p.nameCn})`}
+    getSearchText={p => `${p.code} ${p.nameEn} ${p.nameCn} ${p.countryName || ''} ${p.region || ''}`}
     isActive={p => p.isActive !== false}
   />
 ))
@@ -139,8 +140,8 @@ const CarrierSelect = memo(({ carriers, label, value, onChange, loading }: {
     loading={loading}
     placeholder="Select carrier"
     getOptionValue={c => c.code}
-    getOptionLabel={c => `${c.code} - ${c.name}`}
-    getSearchText={c => `${c.code} ${c.name} ${c.nameEn}`}
+    getOptionLabel={c => `${c.code} - ${c.name}${c.nameEn ? ` (${c.nameEn})` : ''}`}
+    getSearchText={c => `${c.code} ${c.name} ${c.nameEn || ''}`}
     isActive={c => c.isActive !== false}
   />
 ))
