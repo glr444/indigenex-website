@@ -42,10 +42,10 @@ interface Carrier {
 interface Route {
   id: string
   code: string
-  name: string
   nameEn: string
-  originPort: string
-  destinationPort: string
+  nameCn: string
+  originPort?: string
+  destinationPort?: string
   isActive?: boolean
 }
 
@@ -160,8 +160,8 @@ const RouteSelect = memo(({ routes, label, value, onChange, loading }: {
     loading={loading}
     placeholder="Select route"
     getOptionValue={r => r.code}
-    getOptionLabel={r => `${r.code} - ${r.name}`}
-    getSearchText={r => `${r.code} ${r.name} ${r.nameEn}`}
+    getOptionLabel={r => `${r.code} - ${r.nameEn} (${r.nameCn})`}
+    getSearchText={r => `${r.code} ${r.nameEn} ${r.nameCn}`}
     isActive={r => r.isActive !== false}
   />
 ))
