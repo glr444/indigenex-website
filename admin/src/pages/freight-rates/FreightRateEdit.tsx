@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -48,6 +48,123 @@ interface Route {
   destinationPort: string
   isActive?: boolean
 }
+
+interface EntitySelectProps<T> {
+  label: string
+  value: string
+  onChange: (val: string) => void
+  data: T[]
+  required?: boolean
+  loading?: boolean
+  placeholder: string
+  getOptionValue: (item: T) => string
+  getOptionLabel: (item: T) => string
+  getSearchText: (item: T) => string
+  isActive?: (item: T) => boolean
+}
+
+function EntitySelect<T>({
+  label,
+  value,
+  onChange,
+  data,
+  required,
+  loading,
+  placeholder,
+  getOptionValue,
+  getOptionLabel,
+  getSearchText,
+  isActive
+}: EntitySelectProps<T>) {
+  const options = useMemo(() =>
+    data
+      .filter(item => (isActive ? isActive(item) : true))
+      .map(item => ({
+        value: getOptionValue(item),
+        label: getOptionLabel(item),
+        searchText: getSearchText(item)
+      })),
+    [data, isActive, getOptionValue, getOptionLabel, getSearchText]
+  )
+
+  return (
+    <Autocomplete
+      label={label}
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+      required={required}
+      loading={loading}
+      defaultLimit={10}
+    />
+  )
+}
+
+const PortSelect = memo(({ ports, label, value, onChange, required, loading }: {
+  ports: Port[]
+  label: string
+  value: string
+  onChange: (val: string) => void
+  required?: boolean
+  loading?: boolean
+}) => (
+  <EntitySelect
+    label={label}
+    value={value}
+    onChange={onChange}
+    data={ports}
+    required={required}
+    loading={loading}
+    placeholder="Select port"
+    getOptionValue={p => p.code}
+    getOptionLabel={p => `${p.code} - ${p.name} (${p.nameEn})`}
+    getSearchText={p => `${p.code} ${p.name} ${p.nameEn} ${p.city} ${p.country}`}
+    isActive={p => p.isActive !== false}
+  />
+))
+
+const CarrierSelect = memo(({ carriers, label, value, onChange, loading }: {
+  carriers: Carrier[]
+  label: string
+  value: string
+  onChange: (val: string) => void
+  loading?: boolean
+}) => (
+  <EntitySelect
+    label={label}
+    value={value}
+    onChange={onChange}
+    data={carriers}
+    loading={loading}
+    placeholder="Select carrier"
+    getOptionValue={c => c.code}
+    getOptionLabel={c => `${c.code} - ${c.name}`}
+    getSearchText={c => `${c.code} ${c.name} ${c.nameEn}`}
+    isActive={c => c.isActive !== false}
+  />
+))
+
+const RouteSelect = memo(({ routes, label, value, onChange, loading }: {
+  routes: Route[]
+  label: string
+  value: string
+  onChange: (val: string) => void
+  loading?: boolean
+}) => (
+  <EntitySelect
+    label={label}
+    value={value}
+    onChange={onChange}
+    data={routes}
+    loading={loading}
+    placeholder="Select route"
+    getOptionValue={r => r.code}
+    getOptionLabel={r => `${r.code} - ${r.name}`}
+    getSearchText={r => `${r.code} ${r.name} ${r.nameEn}`}
+    isActive={r => r.isActive !== false}
+  />
+))
 
 interface Surcharge {
   name: string
@@ -644,67 +761,6 @@ export default function FreightRateEdit() {
     </div>
   )
 
-  // Port Select Component with Autocomplete
-  const PortSelect = ({ label, value, onChange, required }: { label: string, value: string, onChange: (val: string) => void, required?: boolean }) => {
-    const portOptions = ports.filter(p => p.isActive !== false).map(port => ({
-      value: port.code,
-      label: `${port.code} - ${port.name} (${port.nameEn})`,
-      searchText: `${port.code} ${port.name} ${port.nameEn} ${port.city} ${port.country}`
-    }))
-    return (
-      <Autocomplete
-        label={label}
-        value={value}
-        onChange={onChange}
-        options={portOptions}
-        placeholder={t('freightRates.selectPort')}
-        required={required}
-        loading={baseDataLoading}
-        defaultLimit={10}
-      />
-    )
-  }
-
-  // Carrier Select Component with Autocomplete
-  const CarrierSelect = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => {
-    const carrierOptions = carriers.filter(c => c.isActive !== false).map(carrier => ({
-      value: carrier.code,
-      label: `${carrier.code} - ${carrier.name}`,
-      searchText: `${carrier.code} ${carrier.name} ${carrier.nameEn}`
-    }))
-    return (
-      <Autocomplete
-        label={label}
-        value={value}
-        onChange={onChange}
-        options={carrierOptions}
-        placeholder={t('freightRates.selectCarrier')}
-        loading={baseDataLoading}
-        defaultLimit={10}
-      />
-    )
-  }
-
-  // Route Select Component with Autocomplete
-  const RouteSelect = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => {
-    const routeOptions = routes.filter(r => r.isActive !== false).map(route => ({
-      value: route.code,
-      label: `${route.code} - ${route.name}`,
-      searchText: `${route.code} ${route.name} ${route.nameEn}`
-    }))
-    return (
-      <Autocomplete
-        label={label}
-        value={value}
-        onChange={onChange}
-        options={routeOptions}
-        placeholder={t('freightRates.selectRoute')}
-        loading={baseDataLoading}
-        defaultLimit={10}
-      />
-    )
-  }
-
   return (
     <SlideOverPanel
       isOpen={true}
@@ -738,13 +794,15 @@ export default function FreightRateEdit() {
             </div>
           )}
 
-          {/* Port Information - 移动到第一 */}
+          {/* Port Information */}
           <Section title={t('freightRates.portInfo')} icon={MapPin}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <RouteSelect
+                routes={routes}
                 label={t('freightRates.route')}
                 value={formData.route}
                 onChange={(v) => setFormData(prev => ({ ...prev, route: v }))}
+                loading={baseDataLoading}
               />
               <Input
                 label={t('freightRates.routeCode')}
@@ -755,26 +813,32 @@ export default function FreightRateEdit() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 1fr', gap: 8, alignItems: 'center', marginBottom: 12 }}>
               <PortSelect
+                ports={ports}
                 label={t('freightRates.originPort')}
                 value={formData.originPort}
                 onChange={(v) => setFormData(prev => ({ ...prev, originPort: v }))}
                 required
+                loading={baseDataLoading}
               />
               <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 20 }}>
                 <ChevronRight size={20} style={{ color: '#C7C7CC' }} />
               </div>
               <PortSelect
+                ports={ports}
                 label={t('freightRates.destinationPort')}
                 value={formData.destinationPort}
                 onChange={(v) => setFormData(prev => ({ ...prev, destinationPort: v }))}
                 required
+                loading={baseDataLoading}
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <PortSelect
+                ports={ports}
                 label={t('freightRates.viaPort')}
                 value={formData.viaPort}
                 onChange={(v) => setFormData(prev => ({ ...prev, viaPort: v }))}
+                loading={baseDataLoading}
               />
               <Input
                 label={t('freightRates.portArea')}
@@ -785,13 +849,15 @@ export default function FreightRateEdit() {
             </div>
           </Section>
 
-          {/* Carrier & Transit - 移动到第二 */}
+          {/* Carrier & Transit */}
           <Section title={t('freightRates.carrierTransit')} icon={Ship}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
               <CarrierSelect
+                carriers={carriers}
                 label={t('freightRates.carrier')}
                 value={formData.carrier}
                 onChange={(v) => setFormData(prev => ({ ...prev, carrier: v }))}
+                loading={baseDataLoading}
               />
               <Input
                 label={t('freightRates.transitTime')}

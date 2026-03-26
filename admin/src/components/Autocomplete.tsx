@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 
 interface Option {
@@ -18,6 +18,19 @@ interface AutocompleteProps {
   defaultLimit?: number
 }
 
+function filterOptions(options: Option[], searchTerm: string, defaultLimit: number): Option[] {
+  const term = searchTerm.toLowerCase().trim()
+  if (!term) {
+    return options.slice(0, defaultLimit)
+  }
+  return options.filter(opt => {
+    const searchIn = opt.searchText
+      ? `${opt.label} ${opt.value} ${opt.searchText}`
+      : `${opt.label} ${opt.value}`
+    return searchIn.toLowerCase().includes(term)
+  })
+}
+
 export default function Autocomplete({
   label,
   value,
@@ -30,14 +43,19 @@ export default function Autocomplete({
 }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
-  const [filteredOptions, setFilteredOptions] = useState<Option[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // 获取选中的选项
-  const selectedOption = options.find(opt => opt.value === value)
+  const selectedOption = useMemo(() =>
+    options.find(opt => opt.value === value),
+    [options, value]
+  )
 
-  // 初始化输入值
+  const filteredOptions = useMemo(() =>
+    filterOptions(options, inputValue, defaultLimit),
+    [options, inputValue, defaultLimit]
+  )
+
   useEffect(() => {
     if (selectedOption) {
       setInputValue(selectedOption.label)
@@ -46,7 +64,6 @@ export default function Autocomplete({
     }
   }, [value, selectedOption])
 
-  // 点击外部关闭下拉
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -57,56 +74,27 @@ export default function Autocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // 处理输入变化
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value
-    setInputValue(newValue)
-
-    // 根据输入过滤选项
-    if (newValue.trim()) {
-      const filtered = options.filter(opt =>
-        opt.label.toLowerCase().includes(newValue.toLowerCase()) ||
-        opt.value.toLowerCase().includes(newValue.toLowerCase()) ||
-        (opt.searchText && opt.searchText.toLowerCase().includes(newValue.toLowerCase()))
-      )
-      setFilteredOptions(filtered)
-    } else {
-      // 无输入时只显示前10条
-      setFilteredOptions(options.slice(0, defaultLimit))
-    }
-  }
-
-  // 处理焦点 - 显示默认10条
-  const handleFocus = () => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value)
     setIsOpen(true)
-    if (!inputValue.trim()) {
-      setFilteredOptions(options.slice(0, defaultLimit))
-    } else {
-      // 如果有输入值，根据输入过滤
-      const filtered = options.filter(opt =>
-        opt.label.toLowerCase().includes(inputValue.toLowerCase()) ||
-        opt.value.toLowerCase().includes(inputValue.toLowerCase()) ||
-        (opt.searchText && opt.searchText.toLowerCase().includes(inputValue.toLowerCase()))
-      )
-      setFilteredOptions(filtered)
-    }
-  }
+  }, [])
 
-  // 选择选项
-  const handleSelect = (option: Option) => {
+  const handleFocus = useCallback(() => {
+    setIsOpen(true)
+  }, [])
+
+  const handleSelect = useCallback((option: Option) => {
     onChange(option.value)
     setInputValue(option.label)
     setIsOpen(false)
-  }
+  }, [onChange])
 
-  // 清空选择
-  const handleClear = (e: React.MouseEvent) => {
+  const handleClear = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     onChange('')
     setInputValue('')
-    setFilteredOptions(options.slice(0, defaultLimit))
     inputRef.current?.focus()
-  }
+  }, [onChange])
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
