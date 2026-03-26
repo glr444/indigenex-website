@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Plane, Ship, Truck, TrainFront, Package, FileCheck, Clock, ChevronRight } from 'lucide-react';
-import TechFooter from '../components/TechFooter';
 
 // PC端服务页
 function DesktopServicesPage() {
@@ -199,9 +198,6 @@ function DesktopServicesPage() {
           </Link>
         </div>
       </section>
-
-      {/* Tech Footer with Animated Wave Background */}
-      <TechFooter />
     </>
   );
 }
@@ -375,9 +371,6 @@ function MobileServicesPage() {
           </Link>
         </div>
       </section>
-
-      {/* Tech Footer with Animated Wave Background */}
-      <TechFooter />
     </div>
   );
 }

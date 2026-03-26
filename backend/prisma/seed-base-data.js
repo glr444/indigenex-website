@@ -2,6 +2,15 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
+// Helper function to generate UUID
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // 航线基础数据
 const routesData = [
   { code: 'FE1', nameEn: 'Far East - North America West Coast', nameCn: '远东-北美西岸', description: 'Main service connecting China to US West Coast', regionFrom: '远东', regionTo: '北美西岸' },
@@ -163,6 +172,7 @@ async function main() {
       routesData.map(route =>
         prisma.route.create({
           data: {
+            id: generateUUID(),
             code: route.code,
             nameEn: route.nameEn,
             nameCn: route.nameCn,
@@ -170,6 +180,7 @@ async function main() {
             regionFrom: route.regionFrom,
             regionTo: route.regionTo,
             isActive: true,
+            updatedAt: new Date(),
           },
         })
       )
@@ -188,12 +199,14 @@ async function main() {
       carriersData.map(carrier =>
         prisma.carrier.create({
           data: {
+            id: generateUUID(),
             code: carrier.code,
             name: carrier.name,
             nameEn: carrier.nameEn,
             website: carrier.website,
             contactInfo: carrier.contactInfo,
             isActive: true,
+            updatedAt: new Date(),
           },
         })
       )
@@ -278,6 +291,7 @@ async function main() {
 
         return prisma.port.create({
           data: {
+            id: generateUUID(),
             code: port.code,
             nameEn: port.nameEn,
             nameCn: port.nameCn,
@@ -286,6 +300,7 @@ async function main() {
             region: port.region,
             routeId: routeId,
             isActive: true,
+            updatedAt: new Date(),
           },
         });
       })

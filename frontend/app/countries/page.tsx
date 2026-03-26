@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { ArrowUpRight, Globe, MapPin, CheckCircle } from 'lucide-react';
-import TechFooter from '../components/TechFooter';
 
 export default function CountriesPage() {
   const regions = [
@@ -175,9 +174,6 @@ export default function CountriesPage() {
           </Link>
         </div>
       </section>
-
-      {/* Tech Footer with Animated Wave Background */}
-      <TechFooter />
     </>
   );
 }

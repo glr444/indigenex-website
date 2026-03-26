@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plane, Ship, Truck, TrainFront, ArrowUpRight, ChevronRight, Phone, Mail, MapPin } from 'lucide-react';
-import TechFooter from './components/TechFooter';
 
 // PC端首页组件
 function DesktopHomePage() {
@@ -485,9 +484,6 @@ function MobileHomePage() {
           </Link>
         </div>
       </section>
-
-      {/* Mobile Footer - Tech Wave Background */}
-      <TechFooter />
     </div>
   );
 }

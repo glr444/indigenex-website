@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Check, Plus, Minus, ChevronRight, Phone, Mail, MapPin, Clock } from 'lucide-react';
-import TechFooter from '../components/TechFooter';
 
 // PC端联系页
 function DesktopContactPage() {
@@ -257,9 +256,6 @@ function DesktopContactPage() {
           </div>
         </div>
       </section>
-
-      {/* Tech Footer with Animated Wave Background */}
-      <TechFooter />
     </>
   );
 }
@@ -502,9 +498,6 @@ function MobileContactPage() {
           ))}
         </div>
       </section>
-
-      {/* Tech Footer with Animated Wave Background */}
-      <TechFooter />
     </div>
   );
 }
