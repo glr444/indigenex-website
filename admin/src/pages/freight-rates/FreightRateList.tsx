@@ -217,43 +217,43 @@ export default function FreightRateList() {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
+      {/* Header - 紧凑布局 */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 16,
         flexShrink: 0
       }}>
         <div>
           <h1 style={{
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: 600,
             color: '#1D1D1F',
-            margin: '0 0 4px',
+            margin: '0 0 2px',
             letterSpacing: '-0.5px'
           }}>
             {t('freightRates.title')}
           </h1>
-          <p style={{ fontSize: 14, color: '#86868B', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#86868B', margin: 0 }}>
             {t('freightRates.subtitle')}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 10 }}>
           <label style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '10px 16px',
+            gap: 6,
+            padding: '8px 14px',
             borderRadius: 8,
             border: '1px solid rgba(0,0,0,0.08)',
             background: '#fff',
             cursor: 'pointer',
-            fontSize: 14,
+            fontSize: 13,
             color: '#3A3A3C',
             transition: 'all 0.15s ease'
           }}>
-            <Upload size={16} />
+            <Upload size={14} />
             {t('freightRates.bulkImport')}
             <input
               type="file"
@@ -267,40 +267,40 @@ export default function FreightRateList() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '10px 16px',
+              gap: 6,
+              padding: '8px 14px',
               borderRadius: 8,
               border: 'none',
               background: '#007AFF',
               color: '#fff',
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: 500,
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <Plus size={16} />
+            <Plus size={14} />
             {t('freightRates.newRate')}
           </button>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters - 紧凑布局 */}
       <div style={{
         background: '#fff',
-        borderRadius: 14,
-        padding: '16px 20px',
-        marginBottom: 16,
+        borderRadius: 12,
+        padding: '12px 16px',
+        marginBottom: 12,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         flexShrink: 0
       }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ flex: 1, position: 'relative' }}>
             <Search
-              size={16}
+              size={14}
               style={{
                 position: 'absolute',
-                left: 12,
+                left: 10,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: '#86868B'
@@ -313,10 +313,10 @@ export default function FreightRateList() {
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '10px 12px 10px 36px',
+                padding: '8px 10px 8px 32px',
                 borderRadius: 8,
                 border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 14,
+                fontSize: 13,
                 outline: 'none',
                 transition: 'border-color 0.15s ease'
               }}
@@ -329,18 +329,18 @@ export default function FreightRateList() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '10px 16px',
+              gap: 6,
+              padding: '8px 14px',
               borderRadius: 8,
               border: '1px solid rgba(0,0,0,0.08)',
               background: showFilters ? 'rgba(0,122,255,0.08)' : '#fff',
               color: showFilters ? '#007AFF' : '#3A3A3C',
-              fontSize: 14,
+              fontSize: 13,
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <Filter size={16} />
+            <Filter size={14} />
             {t('common.filter')}
           </button>
         </div>
@@ -348,19 +348,19 @@ export default function FreightRateList() {
         {showFilters && (
           <div style={{
             display: 'flex',
-            gap: 12,
-            marginTop: 12,
-            paddingTop: 12,
+            gap: 10,
+            marginTop: 10,
+            paddingTop: 10,
             borderTop: '1px solid rgba(0,0,0,0.06)'
           }}>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               style={{
-                padding: '8px 12px',
+                padding: '6px 10px',
                 borderRadius: 8,
                 border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 14,
+                fontSize: 13,
                 background: '#fff',
                 cursor: 'pointer'
               }}
@@ -374,10 +374,10 @@ export default function FreightRateList() {
               value={filterSpaceStatus}
               onChange={(e) => setFilterSpaceStatus(e.target.value)}
               style={{
-                padding: '8px 12px',
+                padding: '6px 10px',
                 borderRadius: 8,
                 border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 14,
+                fontSize: 13,
                 background: '#fff',
                 cursor: 'pointer'
               }}
@@ -392,16 +392,16 @@ export default function FreightRateList() {
         )}
       </div>
 
-      {/* Table Container */}
+      {/* Table Container - 紧凑布局 */}
       <div style={{
         background: '#fff',
-        borderRadius: 14,
+        borderRadius: 12,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         overflow: 'auto',
         flex: 1,
         minHeight: 0
       }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1400 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1200 }}>
           <thead>
             <tr style={{ background: '#F5F5F7' }}>
               <th style={thStyle}>{t('freightRates.route')}</th>
@@ -603,21 +603,21 @@ export default function FreightRateList() {
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - 紧凑布局 */}
       {totalPages > 1 && (
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginTop: 16,
-          padding: '12px 16px',
+          marginTop: 12,
+          padding: '10px 14px',
           background: '#fff',
-          borderRadius: 12,
+          borderRadius: 10,
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           flexShrink: 0
         }}>
-          <div style={{ fontSize: 13, color: '#86868B' }}>
-            {t('freightRates.totalRecords', { count: totalCount })},{t('freightRates.perPage')}
+          <div style={{ fontSize: 12, color: '#86868B' }}>
+            {t('freightRates.totalRecords', { count: totalCount })}, {t('freightRates.perPage')}
             <select
               value={pageSize}
               onChange={(e) => {
@@ -625,11 +625,11 @@ export default function FreightRateList() {
                 setCurrentPage(1)
               }}
               style={{
-                margin: '0 8px',
-                padding: '4px 8px',
+                margin: '0 6px',
+                padding: '3px 6px',
                 borderRadius: 6,
                 border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 13,
+                fontSize: 12,
                 background: '#fff',
                 cursor: 'pointer'
               }}
@@ -663,14 +663,14 @@ export default function FreightRateList() {
                 onClick={() => typeof page === 'number' && setCurrentPage(page)}
                 disabled={page === '...'}
                 style={{
-                  minWidth: 32,
-                  height: 32,
-                  padding: '0 8px',
+                  minWidth: 28,
+                  height: 28,
+                  padding: '0 6px',
                   borderRadius: 6,
                   border: 'none',
                   background: page === currentPage ? '#007AFF' : '#F5F5F7',
                   color: page === currentPage ? '#fff' : page === '...' ? '#86868B' : '#3A3A3C',
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: 500,
                   cursor: page === '...' ? 'default' : 'pointer',
                   display: 'flex',
@@ -704,9 +704,9 @@ export default function FreightRateList() {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: '14px 16px',
+  padding: '10px 12px',
   textAlign: 'left',
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 600,
   color: '#86868B',
   textTransform: 'uppercase',
@@ -715,19 +715,19 @@ const thStyle: React.CSSProperties = {
 }
 
 const tdStyle: React.CSSProperties = {
-  padding: '16px',
-  fontSize: 14,
+  padding: '10px 12px',
+  fontSize: 13,
   color: '#1D1D1F',
   whiteSpace: 'nowrap'
 }
 
 const paginationButtonStyle = (disabled: boolean): React.CSSProperties => ({
-  padding: '6px 12px',
+  padding: '5px 10px',
   borderRadius: 6,
   border: 'none',
   background: disabled ? '#F5F5F7' : '#fff',
   color: disabled ? '#C7C7CC' : '#3A3A3C',
-  fontSize: 13,
+  fontSize: 12,
   cursor: disabled ? 'not-allowed' : 'pointer',
   display: 'flex',
   alignItems: 'center',

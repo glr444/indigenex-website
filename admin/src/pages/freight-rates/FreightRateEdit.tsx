@@ -18,7 +18,8 @@ import {
   Package,
   MapPin
 } from 'lucide-react'
-import { freightRateApi, portApi, carrierApi } from '../../utils/api'
+import { freightRateApi, portApi, carrierApi, routeApi } from '../../utils/api'
+import Autocomplete from '../../components/Autocomplete'
 
 interface Port {
   id: string
@@ -35,6 +36,16 @@ interface Carrier {
   code: string
   name: string
   nameEn: string
+  isActive?: boolean
+}
+
+interface Route {
+  id: string
+  code: string
+  name: string
+  nameEn: string
+  originPort: string
+  destinationPort: string
   isActive?: boolean
 }
 
@@ -217,7 +228,7 @@ function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, sa
       zIndex: 1000,
       pointerEvents: showPanel ? 'auto' : 'none'
     }}>
-      {/* Backdrop - 半透明遮罩 */}
+      {/* Backdrop - 半透明遮罩 - 更透明以便看到下方列表 */}
       <div
         onClick={onClose}
         style={{
@@ -226,7 +237,7 @@ function SlideOverPanel({ isOpen, onClose, title, subtitle, children, onSave, sa
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.35)',
+          background: 'rgba(0,0,0,0.15)',
           opacity: showPanel ? 1 : 0,
           transition: 'opacity 0.3s ease'
         }}
@@ -384,6 +395,7 @@ export default function FreightRateEdit() {
   // Base data states
   const [ports, setPorts] = useState<Port[]>([])
   const [carriers, setCarriers] = useState<Carrier[]>([])
+  const [routes, setRoutes] = useState<Route[]>([])
   const [baseDataLoading, setBaseDataLoading] = useState(true)
 
   // Fetch base data
@@ -391,15 +403,19 @@ export default function FreightRateEdit() {
     const fetchBaseData = async () => {
       try {
         setBaseDataLoading(true)
-        const [portsRes, carriersRes] = await Promise.all([
+        const [portsRes, carriersRes, routesRes] = await Promise.all([
           portApi.getAll(),
-          carrierApi.getAll()
+          carrierApi.getAll(),
+          routeApi.getAll()
         ])
         if (portsRes.success) {
           setPorts((portsRes.data as any).ports || [])
         }
         if (carriersRes.success) {
           setCarriers((carriersRes.data as any).carriers || [])
+        }
+        if (routesRes.success) {
+          setRoutes((routesRes.data as any).routes || [])
         }
       } catch (err) {
         console.error('Failed to fetch base data:', err)
@@ -628,55 +644,66 @@ export default function FreightRateEdit() {
     </div>
   )
 
-  // Port Select Component
-  const PortSelect = ({ label, value, onChange, required }: { label: string, value: string, onChange: (val: string) => void, required?: boolean }) => (
-    <div>
-      <label style={labelStyle}>
-        {label}
-        {required && <span style={{ color: '#FF3B30' }}> *</span>}
-      </label>
-      {baseDataLoading ? (
-        <div style={{ ...inputStyle, color: '#86868B' }}>{t('common.loading')}...</div>
-      ) : (
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required={required}
-          style={inputStyle}
-        >
-          <option value="">{t('freightRates.selectPort')}</option>
-          {ports.filter(p => p.isActive !== false).map(port => (
-            <option key={port.id} value={port.code}>
-              {port.code} - {port.name} ({port.nameEn})
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
-  )
+  // Port Select Component with Autocomplete
+  const PortSelect = ({ label, value, onChange, required }: { label: string, value: string, onChange: (val: string) => void, required?: boolean }) => {
+    const portOptions = ports.filter(p => p.isActive !== false).map(port => ({
+      value: port.code,
+      label: `${port.code} - ${port.name} (${port.nameEn})`,
+      searchText: `${port.code} ${port.name} ${port.nameEn} ${port.city} ${port.country}`
+    }))
+    return (
+      <Autocomplete
+        label={label}
+        value={value}
+        onChange={onChange}
+        options={portOptions}
+        placeholder={t('freightRates.selectPort')}
+        required={required}
+        loading={baseDataLoading}
+        defaultLimit={10}
+      />
+    )
+  }
 
-  // Carrier Select Component
-  const CarrierSelect = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => (
-    <div>
-      <label style={labelStyle}>{label}</label>
-      {baseDataLoading ? (
-        <div style={{ ...inputStyle, color: '#86868B' }}>{t('common.loading')}...</div>
-      ) : (
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          style={inputStyle}
-        >
-          <option value="">{t('freightRates.selectCarrier')}</option>
-          {carriers.filter(c => c.isActive !== false).map(carrier => (
-            <option key={carrier.id} value={carrier.code}>
-              {carrier.code} - {carrier.name}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
-  )
+  // Carrier Select Component with Autocomplete
+  const CarrierSelect = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => {
+    const carrierOptions = carriers.filter(c => c.isActive !== false).map(carrier => ({
+      value: carrier.code,
+      label: `${carrier.code} - ${carrier.name}`,
+      searchText: `${carrier.code} ${carrier.name} ${carrier.nameEn}`
+    }))
+    return (
+      <Autocomplete
+        label={label}
+        value={value}
+        onChange={onChange}
+        options={carrierOptions}
+        placeholder={t('freightRates.selectCarrier')}
+        loading={baseDataLoading}
+        defaultLimit={10}
+      />
+    )
+  }
+
+  // Route Select Component with Autocomplete
+  const RouteSelect = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => {
+    const routeOptions = routes.filter(r => r.isActive !== false).map(route => ({
+      value: route.code,
+      label: `${route.code} - ${route.name}`,
+      searchText: `${route.code} ${route.name} ${route.nameEn}`
+    }))
+    return (
+      <Autocomplete
+        label={label}
+        value={value}
+        onChange={onChange}
+        options={routeOptions}
+        placeholder={t('freightRates.selectRoute')}
+        loading={baseDataLoading}
+        defaultLimit={10}
+      />
+    )
+  }
 
   return (
     <SlideOverPanel
@@ -711,14 +738,13 @@ export default function FreightRateEdit() {
             </div>
           )}
 
-          {/* Basic Info */}
-          <Section title={t('freightRates.basicInfo')} icon={Anchor}>
+          {/* Port Information - 移动到第一 */}
+          <Section title={t('freightRates.portInfo')} icon={MapPin}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <Input
+              <RouteSelect
                 label={t('freightRates.route')}
                 value={formData.route}
                 onChange={(v) => setFormData(prev => ({ ...prev, route: v }))}
-                placeholder={t('freightRates.route')}
               />
               <Input
                 label={t('freightRates.routeCode')}
@@ -727,31 +753,6 @@ export default function FreightRateEdit() {
                 placeholder={t('freightRates.routeCode')}
               />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={formData.isRecommended}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isRecommended: e.target.checked }))}
-                  style={{ width: 18, height: 18, accentColor: '#007AFF' }}
-                />
-                <Star size={16} style={{ color: formData.isRecommended ? '#FF9500' : '#86868B' }} />
-                <span style={{ fontSize: 14, color: '#3A3A3C' }}>{t('freightRates.isRecommended')}</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={formData.isAllIn}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isAllIn: e.target.checked }))}
-                  style={{ width: 18, height: 18, accentColor: '#007AFF' }}
-                />
-                <span style={{ fontSize: 14, color: '#3A3A3C' }}>{t('freightRates.isAllIn')}</span>
-              </label>
-            </div>
-          </Section>
-
-          {/* Port Information */}
-          <Section title={t('freightRates.portInfo')} icon={MapPin}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 1fr', gap: 8, alignItems: 'center', marginBottom: 12 }}>
               <PortSelect
                 label={t('freightRates.originPort')}
@@ -784,44 +785,7 @@ export default function FreightRateEdit() {
             </div>
           </Section>
 
-          {/* Validity */}
-          <Section title={t('freightRates.validityPeriod')} icon={Calendar}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={labelStyle}>{t('freightRates.validFrom')} *</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.validFrom}
-                  onChange={(e) => setFormData(prev => ({ ...prev, validFrom: e.target.value }))}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>{t('freightRates.validTo')} *</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.validTo}
-                  onChange={(e) => setFormData(prev => ({ ...prev, validTo: e.target.value }))}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>{t('freightRates.validityType')}</label>
-                <select
-                  value={formData.validityType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, validityType: e.target.value as any }))}
-                  style={inputStyle}
-                >
-                  <option value="LONG">{t('freightRates.longTerm')}</option>
-                  <option value="SHORT">{t('freightRates.shortTerm')}</option>
-                </select>
-              </div>
-            </div>
-          </Section>
-
-          {/* Carrier & Transit */}
+          {/* Carrier & Transit - 移动到第二 */}
           <Section title={t('freightRates.carrierTransit')} icon={Ship}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
               <CarrierSelect
@@ -872,7 +836,7 @@ export default function FreightRateEdit() {
             </div>
           </Section>
 
-          {/* Pricing */}
+          {/* Pricing - 移动到第三 */}
           <Section title={t('freightRates.pricing')} icon={DollarSign}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{ fontSize: 13, color: '#86868B' }}>{t('freightRates.currency')}: {formData.currency}</span>
@@ -916,7 +880,7 @@ export default function FreightRateEdit() {
             </div>
           </Section>
 
-          {/* Cost */}
+          {/* Cost - 移动到第四 */}
           <Section title={t('freightRates.costPrice')} icon={TrendingUp}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
               <PriceInput
@@ -939,6 +903,68 @@ export default function FreightRateEdit() {
                 value={formData.cost45HQ}
                 onChange={(v) => setFormData(prev => ({ ...prev, cost45HQ: v }))}
               />
+            </div>
+          </Section>
+
+          {/* Validity - 移动到第五 */}
+          <Section title={t('freightRates.validityPeriod')} icon={Calendar}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>{t('freightRates.validFrom')} *</label>
+                <input
+                  type="date"
+                  required
+                  value={formData.validFrom}
+                  onChange={(e) => setFormData(prev => ({ ...prev, validFrom: e.target.value }))}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>{t('freightRates.validTo')} *</label>
+                <input
+                  type="date"
+                  required
+                  value={formData.validTo}
+                  onChange={(e) => setFormData(prev => ({ ...prev, validTo: e.target.value }))}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>{t('freightRates.validityType')}</label>
+                <select
+                  value={formData.validityType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, validityType: e.target.value as any }))}
+                  style={inputStyle}
+                >
+                  <option value="LONG">{t('freightRates.longTerm')}</option>
+                  <option value="SHORT">{t('freightRates.shortTerm')}</option>
+                </select>
+              </div>
+            </div>
+          </Section>
+
+          {/* Basic Info - 简化为只保留推荐和AllIn选项 */}
+          <Section title={t('freightRates.basicInfo')} icon={Anchor}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.isRecommended}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isRecommended: e.target.checked }))}
+                  style={{ width: 18, height: 18, accentColor: '#007AFF' }}
+                />
+                <Star size={16} style={{ color: formData.isRecommended ? '#FF9500' : '#86868B' }} />
+                <span style={{ fontSize: 14, color: '#3A3A3C' }}>{t('freightRates.isRecommended')}</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.isAllIn}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isAllIn: e.target.checked }))}
+                  style={{ width: 18, height: 18, accentColor: '#007AFF' }}
+                />
+                <span style={{ fontSize: 14, color: '#3A3A3C' }}>{t('freightRates.isAllIn')}</span>
+              </label>
             </div>
           </Section>
 
