@@ -246,9 +246,9 @@ export default function RouteList() {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: '14px 16px',
+  padding: '10px 12px',
   textAlign: 'left',
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 600,
   color: '#86868B',
   textTransform: 'uppercase',
@@ -257,8 +257,8 @@ const thStyle: React.CSSProperties = {
 }
 
 const tdStyle: React.CSSProperties = {
-  padding: '16px',
-  fontSize: 14,
+  padding: '10px 12px',
+  fontSize: 13,
   color: '#1D1D1F',
   whiteSpace: 'nowrap'
 }

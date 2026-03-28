@@ -102,7 +102,7 @@ export default function ContactList() {
           {/* Table header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 140px 100px 120px 80px',
-            padding: '12px 20px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA',
+            padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA',
           }}>
             {['联系人', '咨询类型', '状态', '日期', '操作'].map((h, i) => (
               <div key={h} style={{ fontSize: 12, fontWeight: 600, color: '#86868B', letterSpacing: '0.3px', textAlign: i === 4 ? 'right' : 'left' }}>{h}</div>
@@ -117,7 +117,7 @@ export default function ContactList() {
                 to={`/contacts/${contact.id}`}
                 style={{
                   display: 'grid', gridTemplateColumns: '1fr 140px 100px 120px 80px',
-                  padding: '14px 20px', alignItems: 'center',
+                  padding: '10px 16px', alignItems: 'center',
                   borderBottom: idx < contacts.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                   textDecoration: 'none', color: 'inherit',
                   background: !contact.isRead ? 'rgba(0,122,255,0.02)' : 'transparent',

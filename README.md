@@ -27,6 +27,7 @@ indigenex-website/
 - 新闻管理 - 增删改查、发布/草稿状态
 - 联系信息管理 - 查看提交的联系表单、标记已读/未读
 - 密码安全 - bcrypt加密存储
+- **设计系统** - 统一组件库和设计规范 ([查看文档](./admin/docs/design-system.md))
 
 ## 技术栈
 
@@ -34,7 +35,7 @@ indigenex-website/
 - Node.js 18+
 - Express.js
 - Prisma ORM
-- PostgreSQL
+- MySQL 8.0 (Docker)
 - JWT 认证
 - bcryptjs 密码加密
 
@@ -55,12 +56,22 @@ indigenex-website/
 
 ### 1. 数据库设置
 
-```bash
-# 安装 PostgreSQL，创建数据库
-createdb indigenex_db
+**方式一：Docker MySQL (推荐用于生产)**
 
-# 或在 psql 中
-CREATE DATABASE indigenex_db;
+```bash
+# 使用 Docker 启动 MySQL
+cd /opt/mysql
+docker-compose up -d
+
+# 数据库连接 URL 格式
+mysql://root:password@127.0.0.1:3306/indigenex
+```
+
+**方式二：SQLite (本地开发)**
+
+```bash
+# 本地开发可以使用 SQLite
+# 数据库文件: backend/prisma/dev.db
 ```
 
 ### 2. 后端启动
@@ -127,7 +138,7 @@ npm run dev
 ### 环境要求
 - Ubuntu 20.04+ / CentOS 7+
 - Node.js 18+
-- PostgreSQL 14+
+- MySQL 8.0 (Docker)
 - Nginx
 - PM2
 
@@ -139,8 +150,8 @@ npm run dev
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# 安装 PostgreSQL
-sudo apt-get install postgresql postgresql-contrib
+# 安装 Docker 和 Docker Compose
+sudo apt-get install -y docker.io docker-compose
 
 # 安装 PM2
 sudo npm install -g pm2
@@ -149,13 +160,53 @@ sudo npm install -g pm2
 sudo apt-get install nginx
 ```
 
-2. **数据库配置**
+2. **数据库配置（MySQL Docker）**
 ```bash
-sudo -u postgres psql
-cREATE USER indigenex WITH PASSWORD 'your_secure_password';
-CREATE DATABASE indigenex_db OWNER indigenex;
-GRANT ALL PRIVILEGES ON DATABASE indigenex_db TO indigenex;
-\q
+# 创建 MySQL 目录
+sudo mkdir -p /opt/mysql
+cd /opt/mysql
+
+# 创建 docker-compose.yml
+sudo tee docker-compose.yml > /dev/null << 'EOF'
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: indigenex-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: your_secure_password
+      MYSQL_DATABASE: indigenex
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - /var/backups/mysql:/backups
+    command: --default-authentication-plugin=mysql_native_password
+
+volumes:
+  mysql_data:
+EOF
+
+# 启动 MySQL
+sudo docker-compose up -d
+
+# 等待 MySQL 启动完成
+sleep 30
+
+# 创建备份脚本
+sudo tee /usr/local/bin/backup-mysql.sh > /dev/null << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/var/backups/mysql"
+DATE=$(date +%Y%m%d_%H%M%S)
+mkdir -p $BACKUP_DIR
+docker exec indigenex-mysql mysqldump -u root -pyour_secure_password indigenex > $BACKUP_DIR/indigenex_$DATE.sql
+find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
+EOF
+sudo chmod +x /usr/local/bin/backup-mysql.sh
+
+# 设置定时备份（每天凌晨2点）
+echo "0 2 * * * root /usr/local/bin/backup-mysql.sh" | sudo tee /etc/cron.d/mysql-backup
 ```
 
 3. **项目部署**

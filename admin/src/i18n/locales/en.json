@@ -28,7 +28,8 @@
     "members": "Members",
     "ports": "Ports",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "apiKeys": "API Keys"
   },
   "freightRates": {
     "title": "Freight Rate Management",
@@ -222,5 +223,34 @@
     "title": "Language",
     "zh": "中文",
     "en": "English"
+  },
+  "apiKeys": {
+    "title": "API Authorization Management",
+    "subtitle": "Manage external API access authorization keys",
+    "newKey": "New API Auth",
+    "name": "Auth Name",
+    "namePlaceholder": "e.g. Open Claw Integration",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional: describe the purpose or system integration",
+    "key": "API Key",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "lastUsed": "Last Used",
+    "createdAt": "Created At",
+    "searchPlaceholder": "Search auth name...",
+    "noData": "No API Authorizations",
+    "createTitle": "Create API Authorization",
+    "createdSuccess": "Created Successfully",
+    "createdDesc": "Please copy and save the API key immediately. Full key will not be shown again after closing.",
+    "copy": "Copy",
+    "copyKey": "Copy Key",
+    "copied": "Copied",
+    "securityWarning": "Please Keep Safe",
+    "securityDesc": "API key is only shown once during creation. If lost, please create a new one.",
+    "confirmDelete": "Are you sure to delete this API authorization? This action cannot be undone.",
+    "fetchFailed": "Failed to fetch API authorizations",
+    "createFailed": "Failed to create API authorization",
+    "deleteFailed": "Failed to delete API authorization"
   }
 }

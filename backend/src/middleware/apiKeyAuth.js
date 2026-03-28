@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 /**
  * API Key认证中间件
  * 从请求头中读取 X-API-Key 进行认证
+ * 注意：API Key 与会员系统完全独立，用于内部员工/后台管理人员
  */
 const authenticateApiKey = async (req, res, next) => {
   try {
@@ -19,10 +20,7 @@ const authenticateApiKey = async (req, res, next) => {
 
     // 查询API Key
     const keyRecord = await prisma.apiKey.findUnique({
-      where: { key: apiKey },
-      include: {
-        member: true
-      }
+      where: { key: apiKey }
     });
 
     if (!keyRecord) {
@@ -48,28 +46,18 @@ const authenticateApiKey = async (req, res, next) => {
       });
     }
 
-    // 检查会员状态
-    if (keyRecord.member.status !== 'APPROVED') {
-      return res.status(403).json({
-        success: false,
-        message: '会员账户未激活或被禁用'
-      });
-    }
-
     // 更新最后使用时间
     await prisma.apiKey.update({
       where: { id: keyRecord.id },
       data: { lastUsedAt: new Date() }
     });
 
-    // 将会员信息和权限附加到请求对象
-    req.member = {
-      memberId: keyRecord.memberId,
-      role: keyRecord.member.role,
-      apiKeyId: keyRecord.id
+    // 将API Key信息附加到请求对象（与会员系统无关）
+    req.apiKeyInfo = {
+      apiKeyId: keyRecord.id,
+      name: keyRecord.name,
+      permissions: keyRecord.permissions ? JSON.parse(keyRecord.permissions) : null
     };
-
-    req.apiKeyPermissions = keyRecord.permissions ? JSON.parse(keyRecord.permissions) : null;
 
     next();
   } catch (error) {
@@ -87,7 +75,7 @@ const authenticateApiKey = async (req, res, next) => {
  */
 const requirePermission = (permission) => {
   return (req, res, next) => {
-    const permissions = req.apiKeyPermissions;
+    const permissions = req.apiKeyInfo?.permissions;
 
     // 如果没有设置权限限制，允许访问
     if (!permissions || permissions.length === 0) {

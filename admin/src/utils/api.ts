@@ -244,3 +244,138 @@ export const carrierApi = {
       method: 'DELETE'
     })
 }
+
+// API Key API
+export const apiKeyApi = {
+  getAll: () =>
+    request('/admin/api-keys'),
+
+  create: (data: { name: string; description?: string }) =>
+    request('/admin/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  delete: (id: string) =>
+    request(`/admin/api-keys/${id}`, {
+      method: 'DELETE'
+    }),
+
+  toggle: (id: string) =>
+    request(`/admin/api-keys/${id}/toggle`, {
+      method: 'POST'
+    })
+}
+
+// Customer API
+export const customerApi = {
+  getAll: (query?: string) =>
+    request(`/admin/customers${query ? `?${query}` : ''}`),
+
+  getById: (id: string) =>
+    request(`/admin/customers/${id}`),
+
+  create: (data: any) =>
+    request('/admin/customers', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: any) =>
+    request(`/admin/customers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  delete: (id: string) =>
+    request(`/admin/customers/${id}`, {
+      method: 'DELETE'
+    }),
+
+  claim: (id: string) =>
+    request(`/admin/customers/${id}/claim`, {
+      method: 'POST'
+    }),
+
+  assign: (id: string, ownerId: string) =>
+    request(`/admin/customers/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ ownerId })
+    }),
+
+  moveToPublic: (id: string) =>
+    request(`/admin/customers/${id}/move-to-public`, {
+      method: 'POST'
+    }),
+
+  checkDuplicate: (name?: string, creditCode?: string) =>
+    request(`/admin/customers/check-duplicate?name=${name || ''}&creditCode=${creditCode || ''}`)
+}
+
+// Contact API
+export const contactPersonApi = {
+  add: (customerId: string, data: any) =>
+    request(`/admin/${customerId}/contacts`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: any) =>
+    request(`/admin/contacts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  delete: (id: string) =>
+    request(`/admin/contacts/${id}`, {
+      method: 'DELETE'
+    }),
+
+  setPrimary: (id: string) =>
+    request(`/admin/contacts/${id}/set-primary`, {
+      method: 'POST'
+    })
+}
+
+// Follow Up API
+export const followUpApi = {
+  getAll: (query?: string) =>
+    request(`/admin/follow-ups${query ? `?${query}` : ''}`),
+
+  add: (data: any) =>
+    request('/admin/follow-ups', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: any) =>
+    request(`/admin/follow-ups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  delete: (id: string) =>
+    request(`/admin/follow-ups/${id}`, {
+      method: 'DELETE'
+    }),
+
+  getPending: () =>
+    request('/admin/follow-ups/pending')
+}
+
+// Customer Attachment API
+export const customerAttachmentApi = {
+  getAll: (customerId: string) =>
+    request(`/admin/${customerId}/attachments`),
+
+  upload: (customerId: string, data: any) =>
+    request(`/admin/${customerId}/attachments`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  delete: (id: string) =>
+    request(`/admin/attachments/${id}`, {
+      method: 'DELETE'
+    })
+}

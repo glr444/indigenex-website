@@ -1,21 +1,23 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Plus,
-  Search,
-  Filter,
-  Upload,
+  Settings,
   Edit2,
   Trash2,
-  Ship,
-  ChevronLeft,
-  ChevronRight,
   Star,
-  Calendar
+  Upload,
+  X,
+  GripVertical,
 } from 'lucide-react'
 import { freightRateApi } from '../../utils/api'
+import { Button, IconButton } from '../../components/ui'
+import { SearchBar, DataTable } from '../../components/business'
+import { colors, spacing, borderRadius, shadows, transitions } from '../../styles/tokens'
+import type { Column } from '../../components/business'
 
+// ==================== 类型定义 ====================
 interface FreightRate {
   id: string
   route: string | null
@@ -66,12 +68,273 @@ interface FreightRate {
   updatedAt: string
 }
 
+interface ColumnConfig {
+  key: string
+  label: string
+  visible: boolean
+  width?: string
+}
+
+// ==================== 常量配置 ====================
+const defaultColumns: ColumnConfig[] = [
+  { key: 'route', label: '航线', visible: true, width: '150px' },
+  { key: 'originPort', label: '起运港', visible: true, width: '120px' },
+  { key: 'destinationPort', label: '目的港', visible: true, width: '120px' },
+  { key: 'viaPort', label: '中转港', visible: true, width: '100px' },
+  { key: 'price20GP', label: '20GP', visible: true, width: '90px' },
+  { key: 'price40GP', label: '40GP', visible: true, width: '90px' },
+  { key: 'price40HQ', label: '40HQ', visible: true, width: '90px' },
+  { key: 'carrier', label: '船公司', visible: true, width: '100px' },
+  { key: 'transitTime', label: '航程', visible: true, width: '80px' },
+  { key: 'validity', label: '有效期', visible: true, width: '160px' },
+  { key: 'spaceStatus', label: '舱位状态', visible: true, width: '100px' },
+  { key: 'status', label: '状态', visible: true, width: '90px' },
+  { key: 'actions', label: '操作', visible: true, width: '80px' },
+]
+
+// 合并保存的列配置与默认配置
+function mergeColumnConfigs(saved: ColumnConfig[] | null, defaults: ColumnConfig[]): ColumnConfig[] {
+  if (!saved || !Array.isArray(saved)) return defaults
+
+  // 创建默认列的映射
+  const defaultMap = new Map(defaults.map((col) => [col.key, col]))
+
+  // 结果数组：保留保存的顺序，添加新增的默认列
+  const result: ColumnConfig[] = []
+  const processedKeys = new Set<string>()
+
+  // 首先按保存的顺序添加列
+  for (const savedCol of saved) {
+    const defaultCol = defaultMap.get(savedCol.key)
+    if (defaultCol) {
+      // 合并保存的配置和默认配置（保留保存的visible，使用默认的label和width）
+      result.push({
+        ...defaultCol,
+        visible: savedCol.visible,
+      })
+      processedKeys.add(savedCol.key)
+    }
+  }
+
+  // 添加新增的默认列（在actions之前）
+  for (const defaultCol of defaults) {
+    if (!processedKeys.has(defaultCol.key)) {
+      // 新增的列，插入到actions之前
+      if (defaultCol.key === 'actions') {
+        result.push(defaultCol)
+      } else {
+        // 找到actions的位置，插入到它前面
+        const actionsIndex = result.findIndex((c) => c.key === 'actions')
+        if (actionsIndex >= 0) {
+          result.splice(actionsIndex, 0, defaultCol)
+        } else {
+          result.push(defaultCol)
+        }
+      }
+      processedKeys.add(defaultCol.key)
+    }
+  }
+
+  return result
+}
+
+const statusOptions = [
+  { value: 'ACTIVE', label: '有效' },
+  { value: 'INACTIVE', label: '无效' },
+  { value: 'EXPIRED', label: '过期' },
+]
+
+const spaceStatusOptions = [
+  { value: 'AVAILABLE', label: '充足' },
+  { value: 'LIMITED', label: '紧张' },
+  { value: 'FULL', label: '已满' },
+  { value: 'SUSPENDED', label: '暂停' },
+]
+
+// ==================== 辅助函数 ====================
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'ACTIVE': return colors.success
+    case 'EXPIRED': return colors.danger
+    case 'INACTIVE': return colors.warning
+    default: return colors.gray[400]
+  }
+}
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'ACTIVE': return '有效'
+    case 'EXPIRED': return '过期'
+    case 'INACTIVE': return '无效'
+    default: return status
+  }
+}
+
+const getSpaceStatusColor = (status: string) => {
+  switch (status) {
+    case 'AVAILABLE': return colors.success
+    case 'LIMITED': return colors.warning
+    case 'FULL': return colors.danger
+    case 'SUSPENDED': return colors.gray[400]
+    default: return colors.gray[400]
+  }
+}
+
+const getSpaceStatusText = (status: string) => {
+  switch (status) {
+    case 'AVAILABLE': return '充足'
+    case 'LIMITED': return '紧张'
+    case 'FULL': return '已满'
+    case 'SUSPENDED': return '暂停'
+    default: return status
+  }
+}
+
+const formatPrice = (price: number | null, currency: string = 'USD') => {
+  if (price === null || price === undefined) return '-'
+  return `${currency} ${price.toLocaleString()}`
+}
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('zh-CN')
+}
+
+// ==================== 子组件 ====================
+
+/**
+ * 列设置下拉面板
+ */
+function ColumnSettingsPanel({
+  columns,
+  onToggle,
+  onReset,
+  onClose,
+  onReorder,
+}: {
+  columns: ColumnConfig[]
+  onToggle: (key: string) => void
+  onReset: () => void
+  onClose: () => void
+  onReorder: (dragIndex: number, dropIndex: number) => void
+}) {
+  const [draggingKey, setDraggingKey] = useState<string | null>(null)
+  const draggableColumns = columns.filter((c) => c.key !== 'actions')
+
+  const handleDragStart = (key: string) => setDraggingKey(key)
+
+  const handleDragOver = (e: React.DragEvent, _key: string) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (e: React.DragEvent, dropKey: string) => {
+    e.preventDefault()
+    if (!draggingKey || draggingKey === dropKey) {
+      setDraggingKey(null)
+      return
+    }
+
+    const dragIndex = draggableColumns.findIndex((c) => c.key === draggingKey)
+    const dropIndex = draggableColumns.findIndex((c) => c.key === dropKey)
+
+    if (dragIndex !== -1 && dropIndex !== -1) {
+      onReorder(dragIndex, dropIndex)
+    }
+    setDraggingKey(null)
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: '100%',
+        left: 0,
+        marginTop: spacing[2],
+        background: colors.bg.primary,
+        borderRadius: borderRadius.DEFAULT,
+        boxShadow: shadows.lg,
+        padding: spacing[3],
+        minWidth: 200,
+        zIndex: 1000,
+        border: `1px solid ${colors.border.DEFAULT}`,
+      }}
+    >
+      {/* 面板头部 */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: spacing[2.5],
+          paddingBottom: spacing[2.5],
+          borderBottom: `1px solid ${colors.border.dark}`,
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 600, color: colors.text.primary }}>
+          自定义列
+        </span>
+        <IconButton icon={<X size={16} />} variant="ghost" size="sm" onClick={onClose} />
+      </div>
+
+      {/* 列列表 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[1] }}>
+        {draggableColumns.map((col) => (
+          <div
+            key={col.key}
+            draggable
+            onDragStart={() => handleDragStart(col.key)}
+            onDragOver={(e) => handleDragOver(e, col.key)}
+            onDrop={(e) => handleDrop(e, col.key)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing[2],
+              padding: `${spacing[1.5]} ${spacing[2]}`,
+              borderRadius: borderRadius.DEFAULT,
+              cursor: 'move',
+              background: draggingKey === col.key ? colors.bg.secondary : 'transparent',
+              transition: `background ${transitions.DEFAULT}`,
+            }}
+          >
+            <GripVertical size={14} style={{ color: colors.gray[300], flexShrink: 0 }} />
+            <input
+              type="checkbox"
+              checked={col.visible}
+              onChange={() => onToggle(col.key)}
+              style={{ cursor: 'pointer' }}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <span style={{ fontSize: 12, color: colors.text.secondary, flex: 1 }}>
+              {col.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* 重置按钮 */}
+      <div
+        style={{
+          marginTop: spacing[2.5],
+          paddingTop: spacing[2.5],
+          borderTop: `1px solid ${colors.border.dark}`,
+        }}
+      >
+        <Button variant="secondary" size="sm" block onClick={onReset}>
+          重置为默认
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ==================== 主组件 ====================
 export default function FreightRateList() {
   const navigate = useNavigate()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+
+  // 状态管理
   const [rates, setRates] = useState<FreightRate[]>([])
   const [loading, setLoading] = useState(true)
-  const [, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterSpaceStatus, setFilterSpaceStatus] = useState('')
@@ -80,7 +343,23 @@ export default function FreightRateList() {
   const [totalCount, setTotalCount] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const [showFilters, setShowFilters] = useState(false)
+  const [showColumnSettings, setShowColumnSettings] = useState(false)
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    try {
+      const saved = localStorage.getItem('freightRateListColumns')
+      const parsed = saved ? JSON.parse(saved) : null
+      return mergeColumnConfigs(parsed, defaultColumns)
+    } catch {
+      return defaultColumns
+    }
+  })
 
+  // 保存列设置
+  useEffect(() => {
+    localStorage.setItem('freightRateListColumns', JSON.stringify(columns))
+  }, [columns])
+
+  // 获取数据
   const fetchRates = useCallback(async () => {
     try {
       setLoading(true)
@@ -93,30 +372,30 @@ export default function FreightRateList() {
 
       const response = await freightRateApi.getAll(params.toString())
       if (response.success) {
-        const data = response.data as any
+        const data = response.data as { rates: FreightRate[]; pagination: { total: number; totalPages: number } }
         setRates(data.rates || [])
-        const pagination = data.pagination || {}
-        const total = pagination.total || 0
+        const total = data.pagination?.total || 0
         setTotalCount(total)
-        setTotalPages(pagination.totalPages || Math.ceil(total / pageSize) || 1)
+        setTotalPages(data.pagination?.totalPages || Math.ceil(total / pageSize) || 1)
       }
-    } catch (_err) {
-      setError(t('freightRates.fetchFailed'))
+    } catch {
+      // 错误处理
     } finally {
       setLoading(false)
     }
-  }, [searchTerm, filterStatus, filterSpaceStatus, currentPage, pageSize, t])
+  }, [searchTerm, filterStatus, filterSpaceStatus, currentPage, pageSize])
 
   useEffect(() => {
     fetchRates()
   }, [fetchRates])
 
+  // 操作处理
   const handleDelete = async (id: string) => {
     if (!confirm(t('freightRates.confirmDelete'))) return
     try {
       await freightRateApi.delete(id)
       fetchRates()
-    } catch (err) {
+    } catch {
       alert(t('freightRates.deleteFailed'))
     }
   }
@@ -130,607 +409,386 @@ export default function FreightRateList() {
       formData.append('file', file)
       const response = await freightRateApi.import(formData)
       if (response.success && response.data) {
-        const data = response.data as any
+        const data = response.data as { imported?: number; success?: number }
         alert(t('freightRates.importSuccess', { count: data.imported || data.success || 0 }))
         fetchRates()
       }
-    } catch (err: any) {
+    } catch {
       alert(t('freightRates.importFailed'))
     }
     e.target.value = ''
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return '#34C759'
-      case 'EXPIRED': return '#FF3B30'
-      case 'INACTIVE': return '#FF9500'
-      default: return '#8E8E93'
+  // 列设置处理
+  const toggleColumn = (key: string) => {
+    setColumns((prev) =>
+      prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col))
+    )
+  }
+
+  const resetColumns = () => {
+    setColumns(defaultColumns)
+    localStorage.removeItem('freightRateListColumns')
+  }
+
+  const reorderColumns = (dragIndex: number, dropIndex: number) => {
+    // 获取所有非actions列（按当前顺序）
+    const draggableColumns = columns.filter((c) => c.key !== 'actions')
+    const actionsCol = columns.find((c) => c.key === 'actions')
+
+    // 在draggableColumns范围内进行拖拽
+    if (dragIndex < 0 || dragIndex >= draggableColumns.length) return
+    if (dropIndex < 0 || dropIndex >= draggableColumns.length) return
+
+    const newDraggable = [...draggableColumns]
+    const [dragged] = newDraggable.splice(dragIndex, 1)
+    newDraggable.splice(dropIndex, 0, dragged)
+
+    // 重新组合：非actions列 + actions列
+    const newOrder: ColumnConfig[] = actionsCol
+      ? [...newDraggable, actionsCol]
+      : newDraggable
+
+    setColumns(newOrder)
+  }
+
+  // 渲染单元格
+  const renderCell = (rate: FreightRate, key: string) => {
+    switch (key) {
+      case 'route':
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing[1] }}>
+            {rate.isRecommended && (
+              <Star size={14} style={{ color: colors.warning, fill: colors.warning }} />
+            )}
+            <span style={{ fontWeight: 500, color: colors.text.primary }}>
+              {rate.route || '-'}
+            </span>
+          </div>
+        )
+
+      case 'originPort':
+        return (
+          <div>
+            <div style={{ fontWeight: 500, color: colors.text.primary }}>
+              {rate.originPort}
+            </div>
+            {rate.portArea && (
+              <div style={{ fontSize: 11, color: colors.text.tertiary }}>
+                {rate.portArea}
+              </div>
+            )}
+          </div>
+        )
+
+      case 'destinationPort':
+        return (
+          <span style={{ color: colors.text.primary }}>
+            {rate.destinationPort}
+          </span>
+        )
+
+      case 'viaPort':
+        return (
+          <span style={{ color: rate.viaPort ? colors.text.secondary : colors.text.quaternary }}>
+            {rate.viaPort || '-'}
+          </span>
+        )
+
+      case 'price20GP':
+        return (
+          <span style={{ color: rate.price20GP ? colors.text.primary : colors.text.quaternary }}>
+            {formatPrice(rate.price20GP, rate.currency)}
+          </span>
+        )
+
+      case 'price40GP':
+        return (
+          <span style={{ color: rate.price40GP ? colors.text.primary : colors.text.quaternary }}>
+            {formatPrice(rate.price40GP, rate.currency)}
+          </span>
+        )
+
+      case 'price40HQ':
+        return (
+          <span style={{ color: rate.price40HQ ? colors.text.primary : colors.text.quaternary }}>
+            {formatPrice(rate.price40HQ, rate.currency)}
+          </span>
+        )
+
+      case 'carrier':
+        return (
+          <div>
+            <div style={{ color: colors.text.secondary }}>
+              {rate.carrier || '-'}
+            </div>
+            {rate.vesselName && (
+              <div style={{ fontSize: 11, color: colors.text.tertiary }}>
+                {rate.vesselName}
+              </div>
+            )}
+          </div>
+        )
+
+      case 'transitTime':
+        return (
+          <div>
+            <div style={{ color: rate.transitTime ? colors.text.secondary : colors.text.quaternary }}>
+              {rate.transitTime ? `${rate.transitTime}天` : '-'}
+            </div>
+            {rate.schedule && (
+              <div style={{ fontSize: 11, color: colors.text.tertiary }}>
+                {rate.schedule}
+              </div>
+            )}
+          </div>
+        )
+
+      case 'validity':
+        return (
+          <span style={{ fontSize: 12, color: colors.text.secondary }}>
+            {formatDate(rate.validFrom)} ~ {formatDate(rate.validTo)}
+          </span>
+        )
+
+      case 'spaceStatus':
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '2px 8px',
+              borderRadius: borderRadius.DEFAULT,
+              fontSize: 11,
+              fontWeight: 500,
+              background: `${getSpaceStatusColor(rate.spaceStatus)}15`,
+              color: getSpaceStatusColor(rate.spaceStatus),
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: getSpaceStatusColor(rate.spaceStatus),
+              }}
+            />
+            {getSpaceStatusText(rate.spaceStatus)}
+          </span>
+        )
+
+      case 'status':
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '2px 8px',
+              borderRadius: borderRadius.DEFAULT,
+              fontSize: 11,
+              fontWeight: 500,
+              background: `${getStatusColor(rate.status)}15`,
+              color: getStatusColor(rate.status),
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: getStatusColor(rate.status),
+              }}
+            />
+            {getStatusText(rate.status)}
+          </span>
+        )
+
+      case 'actions':
+        return (
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+            <IconButton
+              icon={<Edit2 size={14} />}
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/freight-rates/edit/${rate.id}`)}
+              title={t('common.edit', '编辑')}
+            />
+            <IconButton
+              icon={<Trash2 size={14} />}
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(rate.id)}
+              title={t('common.delete', '删除')}
+            />
+          </div>
+        )
+
+      default:
+        return '-'
     }
   }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return t('freightRates.active')
-      case 'EXPIRED': return t('freightRates.expired')
-      case 'INACTIVE': return t('freightRates.inactive')
-      default: return status
-    }
-  }
+  // 构建表格列配置
+  const tableColumns: Column<FreightRate>[] = useMemo(() => {
+    return columns
+      .filter((c) => c.visible)
+      .map((col) => ({
+        key: col.key,
+        title: col.label,
+        width: col.width,
+        align: ['price20GP', 'price40GP', 'price40HQ', 'transitTime', 'spaceStatus', 'status', 'actions'].includes(col.key)
+          ? 'center'
+          : 'left',
+        fixed: col.key === 'actions' ? 'right' : undefined,
+        render: (record: FreightRate) => renderCell(record, col.key),
+      }))
+  }, [columns])
 
-  const getSpaceStatusColor = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE': return '#34C759'
-      case 'LIMITED': return '#FF9500'
-      case 'FULL': return '#FF3B30'
-      case 'SUSPENDED': return '#8E8E93'
-      default: return '#8E8E93'
-    }
-  }
-
-  const getSpaceStatusText = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE': return t('freightRates.spaceAvailable')
-      case 'LIMITED': return t('freightRates.spaceLimited')
-      case 'FULL': return t('freightRates.spaceFull')
-      case 'SUSPENDED': return t('freightRates.spaceSuspended')
-      default: return status
-    }
-  }
-
-  const formatPrice = (price: number | null, currency: string = 'USD') => {
-    if (price === null || price === undefined) return '-'
-    return `${currency} ${price.toLocaleString()}`
-  }
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString(i18n.language === 'zh' ? 'zh-CN' : 'en-US')
-  }
-
-  // 生成分页按钮数组
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = []
-    const maxVisible = 5
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i)
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pages.push(i)
-        pages.push('...')
-        pages.push(totalPages)
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1)
-        pages.push('...')
-        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i)
-      } else {
-        pages.push(1)
-        pages.push('...')
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i)
-        pages.push('...')
-        pages.push(totalPages)
-      }
-    }
-    return pages
-  }
+  // 筛选器配置
+  const filterItems = [
+    {
+      key: 'status',
+      label: '全部状态',
+      options: statusOptions,
+      value: filterStatus,
+      onChange: setFilterStatus,
+    },
+    {
+      key: 'spaceStatus',
+      label: '全部舱位状态',
+      options: spaceStatusOptions,
+      value: filterSpaceStatus,
+      onChange: setFilterSpaceStatus,
+    },
+  ]
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header - 紧凑布局 */}
-      <div style={{
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-        flexShrink: 0
-      }}>
-        <div>
-          <h1 style={{
-            fontSize: 24,
-            fontWeight: 600,
-            color: '#1D1D1F',
-            margin: '0 0 2px',
-            letterSpacing: '-0.5px'
-          }}>
-            {t('freightRates.title')}
-          </h1>
-          <p style={{ fontSize: 13, color: '#86868B', margin: 0 }}>
-            {t('freightRates.subtitle')}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 14px',
-            borderRadius: 8,
-            border: '1px solid rgba(0,0,0,0.08)',
-            background: '#fff',
-            cursor: 'pointer',
-            fontSize: 13,
-            color: '#3A3A3C',
-            transition: 'all 0.15s ease'
-          }}>
-            <Upload size={14} />
-            {t('freightRates.bulkImport')}
-            <input
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              onChange={handleImport}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <button
-            onClick={() => navigate('/freight-rates/new')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: 'none',
-              background: '#007AFF',
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Plus size={14} />
-            {t('freightRates.newRate')}
-          </button>
-        </div>
-      </div>
-
-      {/* Filters - 紧凑布局 */}
-      <div style={{
-        background: '#fff',
-        borderRadius: 12,
-        padding: '12px 16px',
-        marginBottom: 12,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        flexShrink: 0
-      }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <Search
-              size={14}
-              style={{
-                position: 'absolute',
-                left: 10,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#86868B'
-              }}
-            />
-            <input
-              type="text"
-              placeholder={t('freightRates.searchPlaceholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 10px 8px 32px',
-                borderRadius: 8,
-                border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 13,
-                outline: 'none',
-                transition: 'border-color 0.15s ease'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#007AFF'}
-              onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.08)'}
-            />
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid rgba(0,0,0,0.08)',
-              background: showFilters ? 'rgba(0,122,255,0.08)' : '#fff',
-              color: showFilters ? '#007AFF' : '#3A3A3C',
-              fontSize: 13,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Filter size={14} />
-            {t('common.filter')}
-          </button>
-        </div>
-
-        {showFilters && (
-          <div style={{
-            display: 'flex',
-            gap: 10,
-            marginTop: 10,
-            paddingTop: 10,
-            borderTop: '1px solid rgba(0,0,0,0.06)'
-          }}>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                borderRadius: 8,
-                border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 13,
-                background: '#fff',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">{t('freightRates.allStatus')}</option>
-              <option value="ACTIVE">{t('freightRates.active')}</option>
-              <option value="INACTIVE">{t('freightRates.inactive')}</option>
-              <option value="EXPIRED">{t('freightRates.expired')}</option>
-            </select>
-            <select
-              value={filterSpaceStatus}
-              onChange={(e) => setFilterSpaceStatus(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                borderRadius: 8,
-                border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 13,
-                background: '#fff',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">{t('freightRates.allSpaceStatus')}</option>
-              <option value="AVAILABLE">{t('freightRates.spaceAvailable')}</option>
-              <option value="LIMITED">{t('freightRates.spaceLimited')}</option>
-              <option value="FULL">{t('freightRates.spaceFull')}</option>
-              <option value="SUSPENDED">{t('freightRates.spaceSuspended')}</option>
-            </select>
-          </div>
-        )}
-      </div>
-
-      {/* Table Container - 紧凑布局 */}
-      <div style={{
-        background: '#fff',
-        borderRadius: 12,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        overflow: 'auto',
-        flex: 1,
-        minHeight: 0
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1200 }}>
-          <thead>
-            <tr style={{ background: '#F5F5F7' }}>
-              <th style={thStyle}>{t('freightRates.route')}</th>
-              <th style={thStyle}>{t('freightRates.originPort')}</th>
-              <th style={thStyle}>{t('freightRates.destinationPort')}</th>
-              <th style={thStyle}>{t('freightRates.viaPort')}</th>
-              <th style={{ ...thStyle, textAlign: 'center' }}>{t('freightRates.price20GP')}</th>
-              <th style={{ ...thStyle, textAlign: 'center' }}>{t('freightRates.price40GP')}</th>
-              <th style={{ ...thStyle, textAlign: 'center' }}>{t('freightRates.price40HQ')}</th>
-              <th style={thStyle}>{t('freightRates.carrier')}</th>
-              <th style={{ ...thStyle, textAlign: 'center' }}>{t('freightRates.transitTime')}</th>
-              <th style={thStyle}>{t('freightRates.validity')}</th>
-              <th style={thStyle}>{t('freightRates.spaceStatus')}</th>
-              <th style={thStyle}>{t('freightRates.status')}</th>
-              <th style={{ ...thStyle, width: 100 }}>{t('common.actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={13} style={{ padding: 60, textAlign: 'center' }}>
-                  <div style={{ color: '#86868B', fontSize: 14 }}>{t('common.loading')}</div>
-                </td>
-              </tr>
-            ) : rates.length === 0 ? (
-              <tr>
-                <td colSpan={13} style={{ padding: 60, textAlign: 'center' }}>
-                  <Ship size={40} style={{ color: '#C7C7CC', marginBottom: 12 }} />
-                  <div style={{ color: '#86868B', fontSize: 14 }}>{t('freightRates.noData')}</div>
-                </td>
-              </tr>
-            ) : (
-              rates.map((rate) => (
-                <tr
-                  key={rate.id}
-                  style={{
-                    borderBottom: '1px solid rgba(0,0,0,0.04)',
-                    transition: 'background 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#FAFAFA'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {rate.isRecommended && (
-                        <Star size={14} style={{ color: '#FF9500', fill: '#FF9500' }} />
-                      )}
-                      <span style={{ fontWeight: 500, color: '#1D1D1F' }}>
-                        {rate.route || '-'}
-                      </span>
-                    </div>
-                    {rate.routeCode && (
-                      <div style={{ fontSize: 12, color: '#86868B', marginTop: 2 }}>
-                        {rate.routeCode}
-                      </div>
-                    )}
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ fontWeight: 500, color: '#1D1D1F' }}>
-                      {rate.originPort}
-                    </div>
-                    {rate.portArea && (
-                      <div style={{ fontSize: 12, color: '#86868B' }}>
-                        {rate.portArea}
-                      </div>
-                    )}
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ fontWeight: 500, color: '#1D1D1F' }}>
-                      {rate.destinationPort}
-                    </div>
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ fontSize: 14, color: rate.viaPort ? '#3A3A3C' : '#C7C7CC' }}>
-                      {rate.viaPort || '-'}
-                    </div>
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    <span style={{ fontSize: 13, color: rate.price20GP ? '#1D1D1F' : '#C7C7CC' }}>
-                      {formatPrice(rate.price20GP, rate.currency)}
-                    </span>
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    <span style={{ fontSize: 13, color: rate.price40GP ? '#1D1D1F' : '#C7C7CC' }}>
-                      {formatPrice(rate.price40GP, rate.currency)}
-                    </span>
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    <span style={{ fontSize: 13, color: rate.price40HQ ? '#1D1D1F' : '#C7C7CC' }}>
-                      {formatPrice(rate.price40HQ, rate.currency)}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ fontSize: 14, color: '#3A3A3C' }}>
-                      {rate.carrier || '-'}
-                    </div>
-                    {rate.vesselName && (
-                      <div style={{ fontSize: 12, color: '#86868B' }}>
-                        {rate.vesselName}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    <div style={{ fontSize: 14, color: rate.transitTime ? '#3A3A3C' : '#C7C7CC' }}>
-                      {rate.transitTime ? `${rate.transitTime}d` : '-'}
-                    </div>
-                    {rate.schedule && (
-                      <div style={{ fontSize: 11, color: '#86868B' }}>
-                        {rate.schedule}
-                      </div>
-                    )}
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#3A3A3C' }}>
-                      <Calendar size={12} />
-                      {formatDate(rate.validFrom)} - {formatDate(rate.validTo)}
-                    </div>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '4px 10px',
-                      borderRadius: 12,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      background: `${getSpaceStatusColor(rate.spaceStatus)}15`,
-                      color: getSpaceStatusColor(rate.spaceStatus)
-                    }}>
-                      <span style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: getSpaceStatusColor(rate.spaceStatus)
-                      }} />
-                      {getSpaceStatusText(rate.spaceStatus)}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '4px 10px',
-                      borderRadius: 12,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      background: `${getStatusColor(rate.status)}15`,
-                      color: getStatusColor(rate.status)
-                    }}>
-                      <span style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: getStatusColor(rate.status)
-                      }} />
-                      {getStatusText(rate.status)}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        onClick={() => navigate(`/freight-rates/edit/${rate.id}`)}
-                        style={{
-                          padding: 6,
-                          borderRadius: 6,
-                          border: 'none',
-                          background: 'transparent',
-                          cursor: 'pointer',
-                          color: '#007AFF',
-                          transition: 'background 0.15s ease'
-                        }}
-                        title={t('common.edit')}
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(rate.id)}
-                        style={{
-                          padding: 6,
-                          borderRadius: 6,
-                          border: 'none',
-                          background: 'transparent',
-                          cursor: 'pointer',
-                          color: '#FF3B30',
-                          transition: 'background 0.15s ease'
-                        }}
-                        title={t('common.delete')}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination - 紧凑布局 */}
-      {totalPages > 1 && (
-        <div style={{
+        flexDirection: 'column',
+        overflow: 'hidden',
+        background: colors.bg.secondary,
+      }}
+    >
+      {/* 页面头部 */}
+      <div
+        style={{
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          marginTop: 12,
-          padding: '10px 14px',
-          background: '#fff',
-          borderRadius: 10,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          flexShrink: 0
-        }}>
-          <div style={{ fontSize: 12, color: '#86868B' }}>
-            {t('freightRates.totalRecords', { count: totalCount })}, {t('freightRates.perPage')}
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value))
-                setCurrentPage(1)
-              }}
-              style={{
-                margin: '0 6px',
-                padding: '3px 6px',
-                borderRadius: 6,
-                border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 12,
-                background: '#fff',
-                cursor: 'pointer'
-              }}
-            >
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            {t('freightRates.page')} {currentPage}/{totalPages} {t('freightRates.page')}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              style={paginationButtonStyle(currentPage === 1)}
-            >
-              {t('freightRates.firstPage')}
-            </button>
-            <button
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              style={paginationButtonStyle(currentPage === 1)}
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {getPageNumbers().map((page, idx) => (
-              <button
-                key={idx}
-                onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                disabled={page === '...'}
-                style={{
-                  minWidth: 28,
-                  height: 28,
-                  padding: '0 6px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: page === currentPage ? '#007AFF' : '#F5F5F7',
-                  color: page === currentPage ? '#fff' : page === '...' ? '#86868B' : '#3A3A3C',
-                  fontSize: 12,
-                  fontWeight: 500,
-                  cursor: page === '...' ? 'default' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {page}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              style={paginationButtonStyle(currentPage === totalPages)}
-            >
-              <ChevronRight size={16} />
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              style={paginationButtonStyle(currentPage === totalPages)}
-            >
-              {t('freightRates.lastPage')}
-            </button>
-          </div>
+          justifyContent: 'space-between',
+          padding: `${spacing[3]} ${spacing[4]}`,
+          background: colors.bg.primary,
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing[3] }}>
+          <h1 style={{ fontSize: 16, fontWeight: 600, color: colors.text.primary, margin: 0 }}>
+            {t('freightRates.title', '运价维护')}
+          </h1>
+          <span style={{ fontSize: 12, color: colors.text.tertiary }}>
+            {t('freightRates.subtitle', '管理海运运价信息')}
+          </span>
         </div>
-      )}
+      </div>
+
+      {/* 搜索筛选栏 */}
+      <div
+        style={{
+          background: colors.bg.primary,
+          borderRadius: borderRadius.DEFAULT,
+          padding: `${spacing[2.5]} ${spacing[4]}`,
+          margin: `${spacing[3]} ${spacing[4]}`,
+          border: `1px solid ${colors.border.DEFAULT}`,
+          flexShrink: 0,
+        }}
+      >
+        <SearchBar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder={t('freightRates.searchPlaceholder', '搜索航线、港口、船公司...')}
+          filters={filterItems}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          actions={
+            <>
+              {/* 导入按钮 */}
+              <label style={{ cursor: 'pointer', display: 'inline-flex' }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleImport}
+                  style={{ display: 'none' }}
+                />
+                <Button variant="secondary" size="md">
+                  <Upload size={14} />
+                  {t('freightRates.bulkImport', '批量导入')}
+                </Button>
+              </label>
+              {/* 新增按钮 */}
+              <Button variant="primary" size="md" onClick={() => navigate('/freight-rates/new')}>
+                <Plus size={14} />
+                {t('freightRates.newRate', '新增运价')}
+              </Button>
+            </>
+          }
+          columnSettings={
+            <div style={{ position: 'relative' }}>
+              <IconButton
+                icon={<Settings size={16} />}
+                variant="default"
+                size="md"
+                active={showColumnSettings}
+                onClick={() => setShowColumnSettings(!showColumnSettings)}
+                title="列设置"
+              />
+              {showColumnSettings && (
+                <ColumnSettingsPanel
+                  columns={columns}
+                  onToggle={toggleColumn}
+                  onReset={resetColumns}
+                  onClose={() => setShowColumnSettings(false)}
+                  onReorder={reorderColumns}
+                />
+              )}
+            </div>
+          }
+        />
+      </div>
+
+      {/* 数据表格 */}
+      <div
+        style={{
+          background: colors.bg.primary,
+          borderRadius: borderRadius.DEFAULT,
+          border: `1px solid ${colors.border.DEFAULT}`,
+          overflow: 'auto',
+          flex: 1,
+          minHeight: 0,
+          margin: `0 ${spacing[4]} ${spacing[3]}`,
+        }}
+      >
+        <DataTable
+          columns={tableColumns}
+          data={rates}
+          loading={loading}
+          emptyText={t('freightRates.noData', '暂无运价数据')}
+          rowKey="id"
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size)
+            setCurrentPage(1)
+          }}
+        />
+      </div>
     </div>
   )
 }
-
-const thStyle: React.CSSProperties = {
-  padding: '10px 12px',
-  textAlign: 'left',
-  fontSize: 11,
-  fontWeight: 600,
-  color: '#86868B',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  whiteSpace: 'nowrap'
-}
-
-const tdStyle: React.CSSProperties = {
-  padding: '10px 12px',
-  fontSize: 13,
-  color: '#1D1D1F',
-  whiteSpace: 'nowrap'
-}
-
-const paginationButtonStyle = (disabled: boolean): React.CSSProperties => ({
-  padding: '5px 10px',
-  borderRadius: 6,
-  border: 'none',
-  background: disabled ? '#F5F5F7' : '#fff',
-  color: disabled ? '#C7C7CC' : '#3A3A3C',
-  fontSize: 12,
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  boxShadow: disabled ? 'none' : '0 1px 3px rgba(0,0,0,0.04)'
-})

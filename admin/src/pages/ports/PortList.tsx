@@ -303,37 +303,37 @@ export default function PortList() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#F5F5F7' }}>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Code</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Name (EN)</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Name (CN)</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Country</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Region</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Status</th>
-                <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Actions</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Code</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Name (EN)</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Name (CN)</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Country</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Region</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Status</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {ports.map((port, index) => (
                 <tr key={port.id} style={{ borderTop: index > 0 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-                  <td style={{ padding: '14px 16px' }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#007AFF', background: 'rgba(0,122,255,0.08)', padding: '2px 8px', borderRadius: 4 }}>
+                  <td style={{ padding: '10px 12px' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#007AFF', background: 'rgba(0,122,255,0.08)', padding: '2px 6px', borderRadius: 4 }}>
                       {port.code}
                     </span>
                   </td>
-                  <td style={{ padding: '14px 16px', fontSize: 14, color: '#1D1D1F' }}>{port.nameEn}</td>
-                  <td style={{ padding: '14px 16px', fontSize: 14, color: '#1D1D1F' }}>{port.nameCn}</td>
-                  <td style={{ padding: '14px 16px', fontSize: 14, color: '#86868B' }}>
+                  <td style={{ padding: '10px 12px', fontSize: 13, color: '#1D1D1F' }}>{port.nameEn}</td>
+                  <td style={{ padding: '10px 12px', fontSize: 13, color: '#1D1D1F' }}>{port.nameCn}</td>
+                  <td style={{ padding: '10px 12px', fontSize: 13, color: '#86868B' }}>
                     {port.countryCode && (
                       <span style={{ fontFamily: 'monospace', marginRight: 4 }}>{port.countryCode}</span>
                     )}
                     {port.countryName}
                   </td>
-                  <td style={{ padding: '14px 16px', fontSize: 14, color: '#86868B' }}>{port.region || '-'}</td>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td style={{ padding: '10px 12px', fontSize: 13, color: '#86868B' }}>{port.region || '-'}</td>
+                  <td style={{ padding: '10px 12px' }}>
                     <span style={{
-                      padding: '4px 10px',
-                      borderRadius: 20,
-                      fontSize: 12,
+                      padding: '3px 8px',
+                      borderRadius: 10,
+                      fontSize: 11,
                       fontWeight: 500,
                       background: port.isActive ? '#E8F5E9' : '#FFEBEE',
                       color: port.isActive ? '#34C759' : '#FF3B30'
@@ -341,21 +341,21 @@ export default function PortList() {
                       {port.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                     <button
                       onClick={() => {
                         setSelectedPort(port)
                         setIsEditModalOpen(true)
                       }}
-                      style={{ padding: 6, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: '#007AFF', marginRight: 4 }}
+                      style={{ padding: 5, borderRadius: 5, border: 'none', background: 'transparent', cursor: 'pointer', color: '#007AFF', marginRight: 2 }}
                     >
-                      <Edit2 size={16} />
+                      <Edit2 size={15} />
                     </button>
                     <button
                       onClick={() => handleDelete(port.id)}
-                      style={{ padding: 6, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: '#FF3B30' }}
+                      style={{ padding: 5, borderRadius: 5, border: 'none', background: 'transparent', cursor: 'pointer', color: '#FF3B30' }}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={15} />
                     </button>
                   </td>
                 </tr>

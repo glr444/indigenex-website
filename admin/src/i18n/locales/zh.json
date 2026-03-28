@@ -28,7 +28,8 @@
     "members": "会员管理",
     "ports": "港口管理",
     "settings": "设置",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "apiKeys": "API授权管理"
   },
   "freightRates": {
     "title": "运价管理",
@@ -222,5 +223,34 @@
     "title": "语言",
     "zh": "中文",
     "en": "English"
+  },
+  "apiKeys": {
+    "title": "API授权管理",
+    "subtitle": "管理对外API访问授权密钥",
+    "newKey": "新建API授权",
+    "name": "授权名称",
+    "namePlaceholder": "如：Open Claw系统对接",
+    "description": "备注说明",
+    "descriptionPlaceholder": "可选：填写该API授权的用途或对接系统信息",
+    "key": "API密钥",
+    "status": "状态",
+    "active": "启用",
+    "inactive": "禁用",
+    "lastUsed": "最后使用",
+    "createdAt": "创建时间",
+    "searchPlaceholder": "搜索授权名称...",
+    "noData": "暂无API授权",
+    "createTitle": "创建API授权",
+    "createdSuccess": "创建成功",
+    "createdDesc": "请立即复制并保存API密钥，关闭后将无法再次查看完整密钥",
+    "copy": "复制",
+    "copyKey": "复制密钥",
+    "copied": "已复制",
+    "securityWarning": "请妥善保管",
+    "securityDesc": "API密钥仅在创建时显示一次，关闭后将无法再次查看。如遗失，请重新创建。",
+    "confirmDelete": "确定要删除这个API授权吗？删除后将无法恢复。",
+    "fetchFailed": "获取API授权列表失败",
+    "createFailed": "创建API授权失败",
+    "deleteFailed": "删除API授权失败"
   }
 }

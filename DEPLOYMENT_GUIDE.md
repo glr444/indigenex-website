@@ -20,7 +20,7 @@ indigenex-website/
     └── prisma/
 ```
 
-**技术栈**: Next.js + React + Express + Prisma + SQLite + PM2 + Nginx
+**技术栈**: Next.js + React + Express + Prisma + MySQL 8.0 (Docker) + PM2 + Nginx
 
 ---
 
@@ -146,7 +146,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 ```bash
 PORT=5001
 JWT_SECRET=your_strong_secret_here_min_32_chars
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="mysql://root:your_secure_password@localhost:3306/indigenex"
 NODE_ENV=production
 ```
 
@@ -158,7 +158,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 ```
@@ -695,8 +695,8 @@ top
 free -h
 df -h
 
-# 备份数据库（SQLite）
-cp /var/www/indigenex-website/backend/prisma/dev.db /backup/dev-$(date +%Y%m%d).db
+# 备份数据库（MySQL Docker）
+docker exec indigenex-mysql mysqldump -u root -pyour_password indigenex > /backup/indigenex-$(date +%Y%m%d).sql
 ```
 
 ---
@@ -859,8 +859,8 @@ indigenex-website/
 │   ├── package.json
 │   ├── .env               # 环境变量（不上传）
 │   └── prisma/
-│       ├── schema.prisma  # 注意 binaryTargets
-│       └── dev.db         # SQLite 数据库
+│       ├── schema.prisma  # 注意 binaryTargets，provider = "mysql"
+│       └── migrations/    # MySQL 迁移文件
 ├── frontend/
 │   ├── next.config.js     # 关键配置（rewrites）
 │   ├── package.json

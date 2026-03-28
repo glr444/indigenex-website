@@ -98,8 +98,8 @@ npm ci --production
 
 # 创建生产环境变量
 cat > .env << 'EOF'
-# Database
-DATABASE_URL="file:./prod.db"
+# Database - MySQL Docker
+DATABASE_URL="mysql://root:your_secure_password@localhost:3306/indigenex"
 
 # JWT Secret - 生产环境必须修改！
 JWT_SECRET="your-production-jwt-secret-$(openssl rand -base64 32)"
@@ -334,7 +334,7 @@ systemctl status nginx
 
 ## 七、备份与恢复
 
-### 7.1 数据库备份
+### 7.1 数据库备份 (MySQL Docker)
 
 ```bash
 # 创建备份目录
@@ -345,14 +345,15 @@ cat > /usr/local/bin/backup-indigenex.sh << 'EOF'
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/var/backups/indigenex"
-DB_FILE="/var/www/indigenex/backend/prod.db"
+MYSQL_PASSWORD="your_secure_password"
 
-cp "$DB_FILE" "$BACKUP_DIR/db_$DATE.db"
+# 使用 Docker 执行 mysqldump
+docker exec indigenex-mysql mysqldump -u root -p$MYSQL_PASSWORD indigenex > "$BACKUP_DIR/db_$DATE.sql"
 
 # 保留最近 30 天的备份
-find "$BACKUP_DIR" -name "db_*.db" -mtime +30 -delete
+find "$BACKUP_DIR" -name "db_*.sql" -mtime +30 -delete
 
-echo "Backup completed: db_$DATE.db"
+echo "Backup completed: db_$DATE.sql"
 EOF
 
 chmod +x /usr/local/bin/backup-indigenex.sh
@@ -430,9 +431,9 @@ cd /var/www/indigenex/backend
 # 重置数据库（谨慎使用！）
 npx prisma migrate reset
 
-# 查看数据库
-sqlite3 prod.db ".tables"
-sqlite3 prod.db "SELECT * FROM User;"
+# 查看数据库（使用 Docker 内的 MySQL 客户端）
+docker exec -it indigenex-mysql mysql -u root -p -e "USE indigenex; SHOW TABLES;"
+docker exec -it indigenex-mysql mysql -u root -p -e "USE indigenex; SELECT * FROM User LIMIT 5;"
 ```
 
 ### 9.3 权限问题
@@ -441,9 +442,6 @@ sqlite3 prod.db "SELECT * FROM User;"
 # 修复文件权限
 chown -R www-data:www-data /var/www/indigenex
 chmod -R 755 /var/www/indigenex
-
-# 数据库文件权限
-chmod 664 /var/www/indigenex/backend/prod.db
 ```
 
 ---

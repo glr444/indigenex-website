@@ -101,7 +101,7 @@ export default function NewsList() {
           {/* Table header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 120px 120px 100px',
-            padding: '12px 20px',
+            padding: '10px 16px',
             borderBottom: '1px solid rgba(0,0,0,0.06)',
             background: '#FAFAFA',
           }}>
@@ -116,7 +116,7 @@ export default function NewsList() {
               key={item.id}
               style={{
                 display: 'grid', gridTemplateColumns: '1fr 120px 120px 100px',
-                padding: '14px 20px', alignItems: 'center',
+                padding: '10px 16px', alignItems: 'center',
                 borderBottom: idx < news.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                 transition: 'background 0.1s',
               }}

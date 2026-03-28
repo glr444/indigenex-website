@@ -63,6 +63,17 @@ install_pm2() {
     fi
 }
 
+# 安装 Docker
+install_docker() {
+    print_info "安装 Docker..."
+    if ! command -v docker &> /dev/null; then
+        apt install -y docker.io docker-compose
+        systemctl enable docker
+        systemctl start docker
+    fi
+    print_info "Docker 版本: $(docker --version)"
+}
+
 # 创建目录结构
 create_directories() {
     print_info "创建项目目录..."
@@ -70,6 +81,71 @@ create_directories() {
     mkdir -p /var/backups/indigenex
     mkdir -p /var/www/html/admin
     mkdir -p /var/log/indigenex
+    mkdir -p /opt/mysql/data
+    mkdir -p /opt/mysql/backup
+}
+
+# 部署 MySQL
+deploy_mysql() {
+    print_info "部署 MySQL Docker..."
+
+    # 生成随机密码
+    MYSQL_PASSWORD="${MYSQL_PASSWORD:-$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)}"
+
+    # 创建 docker-compose.yml
+    cat > /opt/mysql/docker-compose.yml << EOF
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: indigenex-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQL_PASSWORD
+      MYSQL_DATABASE: indigenex
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - /opt/mysql/data:/var/lib/mysql
+      - /opt/mysql/backup:/backup
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+EOF
+
+    # 启动 MySQL
+    cd /opt/mysql
+    docker-compose up -d
+
+    # 等待 MySQL 启动
+    print_info "等待 MySQL 启动..."
+    sleep 30
+
+    # 保存密码
+    echo "MYSQL_PASSWORD=$MYSQL_PASSWORD" > /opt/mysql/.env
+    chmod 600 /opt/mysql/.env
+
+    print_info "MySQL 已启动，密码保存在 /opt/mysql/.env"
+
+    # 创建备份脚本
+    cat > /opt/mysql/backup/backup.sh << EOF
+#!/bin/bash
+DATE=\$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/opt/mysql/backup"
+MYSQL_PASSWORD="$MYSQL_PASSWORD"
+
+docker exec indigenex-mysql mysqldump -uroot -p\$MYSQL_PASSWORD indigenex | gzip > "\$BACKUP_DIR/db_\$DATE.sql.gz"
+
+# 保留最近 7 天的备份
+find "\$BACKUP_DIR" -name "db_*.sql.gz" -mtime +7 -delete
+
+echo "[\$DATE] Backup completed"
+EOF
+    chmod +x /opt/mysql/backup/backup.sh
+
+    # 设置定时备份（每天凌晨3点）
+    (crontab -l 2>/dev/null; echo "0 3 * * * /opt/mysql/backup/backup.sh >> /var/log/indigenex/mysql-backup.log 2>&1") | crontab -
 }
 
 # 部署后端
@@ -80,6 +156,11 @@ deploy_backend() {
     # 安装依赖
     npm ci --production
 
+    # 读取 MySQL 密码
+    if [ -f /opt/mysql/.env ]; then
+        source /opt/mysql/.env
+    fi
+
     # 生成生产环境变量
     if [ ! -f .env ]; then
         JWT_SECRET=$(openssl rand -base64 32)
@@ -87,8 +168,8 @@ deploy_backend() {
         ADMIN_PASSWORD=$(openssl rand -base64 12)
 
         cat > .env << EOF
-# Database
-DATABASE_URL="file:./prod.db"
+# Database - MySQL Docker
+DATABASE_URL="mysql://root:${MYSQL_PASSWORD:-password}@127.0.0.1:3306/indigenex"
 
 # JWT Secret
 JWT_SECRET="$JWT_SECRET"
@@ -273,33 +354,27 @@ configure_ssl() {
 setup_backup() {
     print_info "设置自动备份..."
 
-    cat > /usr/local/bin/backup-indigenex.sh << 'EOF'
+    # MySQL 备份已在 deploy_mysql 中配置，这里只备份代码
+    cat > /usr/local/bin/backup-indigenex-code.sh << 'EOF'
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/var/backups/indigenex"
-DB_FILE="/var/www/indigenex/backend/prod.db"
-
-# 备份数据库
-if [ -f "$DB_FILE" ]; then
-    cp "$DB_FILE" "$BACKUP_DIR/db_$DATE.db"
-    gzip "$BACKUP_DIR/db_$DATE.db"
-fi
 
 # 备份代码
 cd /var/www
+mkdir -p "$BACKUP_DIR"
 tar czf "$BACKUP_DIR/code_$DATE.tar.gz" indigenex --exclude='node_modules' --exclude='.git'
 
 # 保留最近 30 天的备份
-find "$BACKUP_DIR" -name "db_*.gz" -mtime +30 -delete
 find "$BACKUP_DIR" -name "code_*.tar.gz" -mtime +30 -delete
 
-echo "[$DATE] Backup completed"
+echo "[$DATE] Code backup completed"
 EOF
 
-    chmod +x /usr/local/bin/backup-indigenex.sh
+    chmod +x /usr/local/bin/backup-indigenex-code.sh
 
-    # 每天凌晨2点备份
-    (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup-indigenex.sh >> /var/log/indigenex/backup.log 2>&1") | crontab -
+    # 每天凌晨2点备份代码
+    (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup-indigenex-code.sh >> /var/log/indigenex/backup.log 2>&1") | crontab -
 }
 
 # 生成 API Key
@@ -346,7 +421,14 @@ show_deployment_info() {
     echo "  nginx -t            # 测试 Nginx 配置"
     echo ""
     echo "备份目录："
-    echo "  /var/backups/indigenex"
+    echo "  代码备份: /var/backups/indigenex"
+    echo "  数据库备份: /opt/mysql/backup"
+    echo ""
+    echo "MySQL 数据库："
+    echo "  容器名: indigenex-mysql"
+    echo "  密码文件: /opt/mysql/.env"
+    echo "  查看状态: docker ps"
+    echo "  备份命令: docker exec indigenex-mysql mysqldump -uroot -p<密码> indigenex"
     echo "=============================================="
 }
 
@@ -354,6 +436,7 @@ show_deployment_info() {
 main() {
     echo "=============================================="
     echo "  Indigenex 网站生产环境部署脚本"
+    echo "  数据库: MySQL 8.0 (Docker)"
     echo "=============================================="
     echo ""
 
@@ -361,7 +444,9 @@ main() {
     system_update
     install_nodejs
     install_pm2
+    install_docker
     create_directories
+    deploy_mysql
 
     # 检查代码是否存在
     if [ ! -d "/var/www/indigenex/backend" ]; then

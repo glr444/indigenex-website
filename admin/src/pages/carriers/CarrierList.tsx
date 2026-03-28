@@ -156,11 +156,11 @@ export default function CarrierList() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#F5F5F7' }}>
-              <th style={thStyle}>{t('carriers.code')}</th>
-              <th style={thStyle}>{t('carriers.name')}</th>
-              <th style={thStyle}>{t('carriers.website')}</th>
-              <th style={thStyle}>{t('carriers.status')}</th>
-              <th style={{ ...thStyle, width: 100 }}>{t('common.actions')}</th>
+              <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>{t('carriers.code')}</th>
+              <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>{t('carriers.name')}</th>
+              <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>{t('carriers.website')}</th>
+              <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase' }}>{t('carriers.status')}</th>
+              <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#86868B', textTransform: 'uppercase', width: 80 }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -252,20 +252,9 @@ export default function CarrierList() {
   )
 }
 
-const thStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  textAlign: 'left',
-  fontSize: 12,
-  fontWeight: 600,
-  color: '#86868B',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  whiteSpace: 'nowrap'
-}
-
 const tdStyle: React.CSSProperties = {
-  padding: '16px',
-  fontSize: 14,
+  padding: '10px 12px',
+  fontSize: 13,
   color: '#1D1D1F',
   whiteSpace: 'nowrap'
 }

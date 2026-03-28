@@ -46,7 +46,105 @@ model Contact {
   updatedAt   DateTime @updatedAt
 }
 
-// ==================== 业务门户模型 ====================
+// ==================== CRM 客户管理模型 ====================
+
+// 客户表
+model Customer {
+  id                  String    @id @default(uuid())
+  name                String    // 公司名称
+  creditCode          String?   @map("credit_code") // 统一社会信用代码
+  industry            String?   // 行业
+  scale               String?   // 公司规模
+  preferredRoutes     String?   @map("preferred_routes") // 偏好航线（JSON数组）
+  settlementType      String?   @map("settlement_type") // 结算方式偏好
+
+  // 客户画像
+  level               String?   // 客户等级 A/B/C/D
+  type                String?   // 客户类型 direct/peer/agent
+  monthlyVolume       Int?      @map("monthly_volume") // 月货量预估(TEU)
+  transportModes      String?   @map("transport_modes") // 运输方式（逗号分隔）
+  targetRoutes        String?   @map("target_routes") // 目标航线
+  requirements        String?   // 特殊需求
+  competition         String?   // 竞争情况
+  tags                String?   // 标签（逗号分隔）
+
+  // 管理
+  status              String    @default("active") // active-正常, public-公海, archived-归档
+  ownerId             String?   @map("owner_id") // 归属销售ID
+  source              String    @default("manual") // 来源
+
+  // 时间戳
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  lastFollowUpAt      DateTime? @map("last_follow_up_at") // 最后跟进时间
+
+  // 关联
+  contacts            ContactPerson[]
+  followUps           FollowUp[]
+  attachments         CustomerAttachment[]
+
+  @@index([name])
+  @@index([status])
+  @@index([ownerId])
+  @@index([level])
+  @@map("customers")
+}
+
+// 联系人表
+model ContactPerson {
+  id          String   @id @default(uuid())
+  customerId  String   @map("customer_id")
+  name        String   // 姓名
+  position    String?  // 职位
+  phone       String?  // 电话
+  wechat      String?  // 微信
+  email       String?  // 邮箱
+  isPrimary   Boolean  @default(false) @map("is_primary") // 是否主联系人
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("contact_persons")
+}
+
+// 跟进记录表
+model FollowUp {
+  id              String   @id @default(uuid())
+  customerId      String   @map("customer_id")
+  userId          String   @map("user_id") // 跟进人ID
+  method          String   // 跟进方式 phone/wechat/email/visit/other
+  content         String   // 跟进内容
+  feedback        String?  // 客户反馈
+  nextFollowUpAt  DateTime? @map("next_follow_up_at") // 下次跟进提醒
+  updateProfile   Boolean  @default(false) @map("update_profile") // 是否同步更新画像
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([userId])
+  @@index([nextFollowUpAt])
+  @@map("follow_ups")
+}
+
+// 客户附件表
+model CustomerAttachment {
+  id          String   @id @default(uuid())
+  customerId  String   @map("customer_id")
+  name        String   // 文件名
+  type        String   // 文件类型 sop/contract/license/other
+  url         String   // 存储路径
+  size        Int      // 文件大小(字节)
+  uploadedBy  String   @map("uploaded_by") // 上传人ID
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("customer_attachments")
+}
 
 // 会员模型
 model Member {
@@ -71,7 +169,6 @@ model Member {
   salesMobile  String? // 销售手机
   salesEmail   String? // 销售邮箱
 
-  apiKeys        ApiKey[]
   subscriptions  Subscription[]
   orderQueryLogs OrderQueryLog[]
   memberPortPrefs MemberPortPreference[]
@@ -81,22 +178,21 @@ model Member {
   @@index([email])
 }
 
-// API Key模型（对外API认证）
+// API Key模型（对外API认证 - 独立于会员系统）
 model ApiKey {
-  id          String    @id @default(uuid())
-  memberId    String
-  key         String    @unique
-  name        String
-  permissions String?   // JSON字符串存储权限配置
-  isActive    Boolean   @default(true)
-  lastUsedAt  DateTime?
-  expiresAt   DateTime?
-  createdAt   DateTime  @default(now())
-
-  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  key             String    @unique
+  name            String
+  description     String?   // 备注说明
+  permissions     String?   // JSON字符串存储权限配置
+  isActive        Boolean   @default(true)
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+  createdByAdminId String?  // 创建者（管理员ID），与会员系统无关
+  createdAt       DateTime  @default(now())
 
   @@index([key])
-  @@index([memberId])
+  @@index([createdByAdminId])
 }
 
 // 订阅配额模型

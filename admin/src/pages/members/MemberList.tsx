@@ -2,12 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Search,
   Filter,
-  CheckCircle,
   Building2,
   Mail,
   Phone,
-  User,
-  AlertCircle
+  User
 } from 'lucide-react'
 import { memberApi } from '../../utils/api'
 
@@ -29,7 +27,6 @@ interface Member {
   salesPhone?: string | null
   salesMobile?: string | null
   salesEmail?: string | null
-  apiKeys?: { id: string; name: string; isActive: boolean; lastUsedAt: string | null }[]
 }
 
 export default function MemberList() {
@@ -42,7 +39,6 @@ export default function MemberList() {
   const [totalPages, setTotalPages] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editForm, setEditForm] = useState({
     companyName: '',
@@ -57,9 +53,6 @@ export default function MemberList() {
     salesEmail: ''
   })
   const [saving, setSaving] = useState(false)
-  const [newKeyName, setNewKeyName] = useState('')
-  const [generatingKey, setGeneratingKey] = useState(false)
-  const [generatedKey, setGeneratedKey] = useState('')
 
   const fetchMembers = useCallback(async () => {
     try {
@@ -146,41 +139,6 @@ export default function MemberList() {
     }
   }
 
-  const handleCreateApiKey = async () => {
-    if (!selectedMember || !newKeyName.trim()) return
-    setGeneratingKey(true)
-    try {
-      const response = await memberApi.createApiKey(selectedMember.id, {
-        name: newKeyName,
-        permissions: ['freight-rates:read', 'freight-rates:write', 'orders:read']
-      })
-      if (response.success) {
-        const data = response.data as any
-        setGeneratedKey(data.key)
-        setNewKeyName('')
-      }
-    } catch (err) {
-      alert('生成API Key失败')
-    } finally {
-      setGeneratingKey(false)
-    }
-  }
-
-  const handleRevokeApiKey = async (keyId: string) => {
-    if (!selectedMember) return
-    if (!confirm('确定要撤销该API Key吗？')) return
-    try {
-      await memberApi.revokeApiKey(selectedMember.id, keyId)
-      const updated = await memberApi.getById(selectedMember.id)
-      if (updated.success && updated.data) {
-        const data = updated.data as any
-        setSelectedMember(data)
-      }
-    } catch (err) {
-      alert('撤销失败')
-    }
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'APPROVED': return '#34C759'
@@ -216,19 +174,19 @@ export default function MemberList() {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24
+        marginBottom: 16
       }}>
         <div>
           <h1 style={{
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: 600,
             color: '#1D1D1F',
-            margin: '0 0 4px',
+            margin: '0 0 2px',
             letterSpacing: '-0.5px'
           }}>
             会员管理
           </h1>
-          <p style={{ fontSize: 14, color: '#86868B', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#86868B', margin: 0 }}>
             管理客户会员，审核注册申请
           </p>
         </div>
@@ -237,18 +195,18 @@ export default function MemberList() {
       {/* Filters */}
       <div style={{
         background: '#fff',
-        borderRadius: 14,
-        padding: '16px 20px',
-        marginBottom: 16,
+        borderRadius: 12,
+        padding: '12px 16px',
+        marginBottom: 12,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ flex: 1, position: 'relative' }}>
             <Search
-              size={16}
+              size={14}
               style={{
                 position: 'absolute',
-                left: 12,
+                left: 10,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: '#86868B'
@@ -261,10 +219,10 @@ export default function MemberList() {
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '10px 12px 10px 36px',
+                padding: '8px 10px 8px 32px',
                 borderRadius: 8,
                 border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 14,
+                fontSize: 13,
                 outline: 'none'
               }}
             />
@@ -274,17 +232,17 @@ export default function MemberList() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '10px 16px',
+              gap: 6,
+              padding: '8px 14px',
               borderRadius: 8,
               border: '1px solid rgba(0,0,0,0.08)',
               background: showFilters ? 'rgba(0,122,255,0.08)' : '#fff',
               color: showFilters ? '#007AFF' : '#3A3A3C',
-              fontSize: 14,
+              fontSize: 13,
               cursor: 'pointer'
             }}
           >
-            <Filter size={16} />
+            <Filter size={14} />
             筛选
           </button>
         </div>
@@ -292,19 +250,19 @@ export default function MemberList() {
         {showFilters && (
           <div style={{
             display: 'flex',
-            gap: 12,
-            marginTop: 12,
-            paddingTop: 12,
+            gap: 10,
+            marginTop: 10,
+            paddingTop: 10,
             borderTop: '1px solid rgba(0,0,0,0.06)'
           }}>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               style={{
-                padding: '8px 12px',
+                padding: '6px 10px',
                 borderRadius: 8,
                 border: '1px solid rgba(0,0,0,0.08)',
-                fontSize: 14,
+                fontSize: 13,
                 background: '#fff',
                 cursor: 'pointer'
               }}
@@ -322,7 +280,7 @@ export default function MemberList() {
       {/* Table */}
       <div style={{
         background: '#fff',
-        borderRadius: 14,
+        borderRadius: 12,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         overflow: 'hidden'
       }}>
@@ -335,21 +293,21 @@ export default function MemberList() {
               <th style={thStyle}>角色</th>
               <th style={thStyle}>注册时间</th>
               <th style={thStyle}>最后登录</th>
-              <th style={{ ...thStyle, width: 180 }}>操作</th>
+              <th style={{ ...thStyle, width: 160 }}>操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} style={{ padding: 60, textAlign: 'center' }}>
-                  <div style={{ color: '#86868B', fontSize: 14 }}>加载中...</div>
+                <td colSpan={7} style={{ padding: 40, textAlign: 'center' }}>
+                  <div style={{ color: '#86868B', fontSize: 13 }}>加载中...</div>
                 </td>
               </tr>
             ) : members.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: 60, textAlign: 'center' }}>
-                  <Building2 size={40} style={{ color: '#C7C7CC', marginBottom: 12 }} />
-                  <div style={{ color: '#86868B', fontSize: 14 }}>暂无会员数据</div>
+                <td colSpan={7} style={{ padding: 40, textAlign: 'center' }}>
+                  <Building2 size={32} style={{ color: '#C7C7CC', marginBottom: 8 }} />
+                  <div style={{ color: '#86868B', fontSize: 13 }}>暂无会员数据</div>
                 </td>
               </tr>
             ) : (
@@ -364,45 +322,45 @@ export default function MemberList() {
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <td style={tdStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
                         background: 'linear-gradient(135deg, #007AFF, #5856D6)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: '#fff',
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: 600
                       }}>
                         {member.companyName[0]}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 500, color: '#1D1D1F' }}>
+                        <div style={{ fontWeight: 500, color: '#1D1D1F', fontSize: 13 }}>
                           {member.companyName}
                         </div>
-                        <div style={{ fontSize: 12, color: '#86868B', marginTop: 2 }}>
+                        <div style={{ fontSize: 11, color: '#86868B' }}>
                           {member.position || '无职务'}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td style={tdStyle}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                        <User size={12} style={{ color: '#86868B' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                        <User size={11} style={{ color: '#86868B' }} />
                         {member.contactName}
                       </div>
                       {member.email && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                          <Mail size={12} style={{ color: '#86868B' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                          <Mail size={11} style={{ color: '#86868B' }} />
                           {member.email}
                         </div>
                       )}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                        <Phone size={12} style={{ color: '#86868B' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                        <Phone size={11} style={{ color: '#86868B' }} />
                         {member.phone}
                       </div>
                     </div>
@@ -411,17 +369,17 @@ export default function MemberList() {
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 4,
-                      padding: '4px 10px',
-                      borderRadius: 12,
-                      fontSize: 12,
+                      gap: 3,
+                      padding: '3px 8px',
+                      borderRadius: 10,
+                      fontSize: 11,
                       fontWeight: 500,
                       background: `${getStatusColor(member.status)}15`,
                       color: getStatusColor(member.status)
                     }}>
                       <span style={{
-                        width: 6,
-                        height: 6,
+                        width: 5,
+                        height: 5,
                         borderRadius: '50%',
                         background: getStatusColor(member.status)
                       }} />
@@ -430,9 +388,9 @@ export default function MemberList() {
                   </td>
                   <td style={tdStyle}>
                     <span style={{
-                      padding: '4px 10px',
-                      borderRadius: 12,
-                      fontSize: 12,
+                      padding: '3px 8px',
+                      borderRadius: 10,
+                      fontSize: 11,
                       fontWeight: 500,
                       background: member.role === 'ADMIN' ? '#E3F2FD' : '#F5F5F7',
                       color: member.role === 'ADMIN' ? '#1976D2' : '#3A3A3C'
@@ -441,30 +399,30 @@ export default function MemberList() {
                     </span>
                   </td>
                   <td style={tdStyle}>
-                    <div style={{ fontSize: 13, color: '#3A3A3C' }}>
+                    <div style={{ fontSize: 12, color: '#3A3A3C' }}>
                       {new Date(member.createdAt).toLocaleDateString('zh-CN')}
                     </div>
                   </td>
                   <td style={tdStyle}>
-                    <div style={{ fontSize: 13, color: '#86868B' }}>
+                    <div style={{ fontSize: 12, color: '#86868B' }}>
                       {member.lastLoginAt
                         ? new Date(member.lastLoginAt).toLocaleDateString('zh-CN')
                         : '从未登录'}
                     </div>
                   </td>
                   <td style={tdStyle}>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
                       {member.status === 'PENDING' && (
                         <>
                           <button
                             onClick={() => handleApprove(member.id)}
                             style={{
-                              padding: '6px 12px',
+                              padding: '4px 10px',
                               borderRadius: 6,
                               border: 'none',
                               background: '#34C759',
                               color: '#fff',
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 500,
                               cursor: 'pointer'
                             }}
@@ -474,12 +432,12 @@ export default function MemberList() {
                           <button
                             onClick={() => handleReject(member.id)}
                             style={{
-                              padding: '6px 12px',
+                              padding: '4px 10px',
                               borderRadius: 6,
                               border: 'none',
                               background: '#FF3B30',
                               color: '#fff',
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 500,
                               cursor: 'pointer'
                             }}
@@ -493,12 +451,12 @@ export default function MemberList() {
                           <button
                             onClick={() => handleOpenEdit(member)}
                             style={{
-                              padding: '6px 12px',
+                              padding: '4px 10px',
                               borderRadius: 6,
                               border: '1px solid rgba(0,0,0,0.2)',
                               background: 'transparent',
                               color: '#3A3A3C',
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 500,
                               cursor: 'pointer'
                             }}
@@ -506,32 +464,14 @@ export default function MemberList() {
                             编辑
                           </button>
                           <button
-                            onClick={() => {
-                              setSelectedMember(member)
-                              setShowApiKeyModal(true)
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: 6,
-                              border: '1px solid #007AFF',
-                              background: 'transparent',
-                              color: '#007AFF',
-                              fontSize: 12,
-                              fontWeight: 500,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            API Key
-                          </button>
-                          <button
                             onClick={() => handleToggleStatus(member.id)}
                             style={{
-                              padding: '6px 12px',
+                              padding: '4px 10px',
                               borderRadius: 6,
                               border: '1px solid #FF3B30',
                               background: 'transparent',
                               color: '#FF3B30',
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 500,
                               cursor: 'pointer'
                             }}
@@ -544,12 +484,12 @@ export default function MemberList() {
                         <button
                           onClick={() => handleToggleStatus(member.id)}
                           style={{
-                            padding: '6px 12px',
+                            padding: '4px 10px',
                             borderRadius: 6,
                             border: '1px solid #34C759',
                             background: 'transparent',
                             color: '#34C759',
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: 500,
                             cursor: 'pointer'
                           }}
@@ -571,21 +511,21 @@ export default function MemberList() {
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: 8,
-          marginTop: 24
+          gap: 6,
+          marginTop: 16
         }}>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
+                width: 28,
+                height: 28,
+                borderRadius: 6,
                 border: 'none',
                 background: currentPage === page ? '#007AFF' : '#fff',
                 color: currentPage === page ? '#fff' : '#3A3A3C',
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: 500,
                 cursor: 'pointer',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
@@ -856,189 +796,14 @@ export default function MemberList() {
           </div>
         </div>
       )}
-      {showApiKeyModal && selectedMember && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.4)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 16,
-            width: 480,
-            maxHeight: '80vh',
-            overflow: 'auto',
-            padding: 24
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 20
-            }}>
-              <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1D1D1F', margin: 0 }}>
-                API Key 管理 - {selectedMember.companyName}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowApiKeyModal(false)
-                  setGeneratedKey('')
-                  setNewKeyName('')
-                }}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  color: '#86868B'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Existing Keys */}
-            <div style={{ marginBottom: 24 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#3A3A3C', margin: '0 0 12px' }}>
-                已有 API Keys
-              </h3>
-              {selectedMember.apiKeys?.length === 0 ? (
-                <div style={{ padding: 20, textAlign: 'center', color: '#86868B', background: '#F5F5F7', borderRadius: 10 }}>
-                  暂无 API Key
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {selectedMember.apiKeys?.map((key) => (
-                    <div key={key.id} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: 12,
-                      background: '#F5F5F7',
-                      borderRadius: 10
-                    }}>
-                      <div>
-                        <div style={{ fontWeight: 500, color: '#1D1D1F' }}>{key.name}</div>
-                        <div style={{ fontSize: 12, color: '#86868B' }}>
-                          {key.isActive ? '有效' : '已撤销'}
-                          {key.lastUsedAt && ` · 最后使用: ${new Date(key.lastUsedAt).toLocaleDateString('zh-CN')}`}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleRevokeApiKey(key.id)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: 6,
-                          border: '1px solid #FF3B30',
-                          background: 'transparent',
-                          color: '#FF3B30',
-                          fontSize: 12,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        撤销
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Generate New Key */}
-            {!generatedKey ? (
-              <div style={{
-                padding: 16,
-                background: '#F5F5F7',
-                borderRadius: 10
-              }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: '#3A3A3C', margin: '0 0 12px' }}>
-                  生成新 API Key
-                </h3>
-                <input
-                  type="text"
-                  value={newKeyName}
-                  onChange={(e) => setNewKeyName(e.target.value)}
-                  placeholder="输入 API Key 名称（如：Open Claw AI）"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    border: '1px solid rgba(0,0,0,0.08)',
-                    fontSize: 14,
-                    marginBottom: 12,
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <button
-                  onClick={handleCreateApiKey}
-                  disabled={generatingKey || !newKeyName.trim()}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 8,
-                    border: 'none',
-                    background: '#007AFF',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: generatingKey ? 'not-allowed' : 'pointer',
-                    opacity: generatingKey ? 0.7 : 1
-                  }}
-                >
-                  {generatingKey ? '生成中...' : '生成 API Key'}
-                </button>
-              </div>
-            ) : (
-              <div style={{
-                padding: 16,
-                background: '#E8F5E9',
-                borderRadius: 10
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  color: '#2E7D32',
-                  fontWeight: 600,
-                  marginBottom: 12
-                }}>
-                  <CheckCircle size={18} />
-                  API Key 生成成功
-                </div>
-                <div style={{
-                  padding: 12,
-                  background: '#fff',
-                  borderRadius: 8,
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  wordBreak: 'break-all',
-                  marginBottom: 12
-                }}>
-                  {generatedKey}
-                </div>
-                <div style={{ fontSize: 12, color: '#FF3B30' }}>
-                  <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                  请立即复制保存，此密钥仅显示一次
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
 const thStyle: React.CSSProperties = {
-  padding: '14px 16px',
+  padding: '10px 12px',
   textAlign: 'left',
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 600,
   color: '#86868B',
   textTransform: 'uppercase',
@@ -1046,7 +811,7 @@ const thStyle: React.CSSProperties = {
 }
 
 const tdStyle: React.CSSProperties = {
-  padding: '16px',
-  fontSize: 14,
+  padding: '10px 12px',
+  fontSize: 13,
   color: '#1D1D1F'
 }
